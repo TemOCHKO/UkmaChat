@@ -136,20 +136,16 @@ public class UserRepository implements IUserRepository {
     public boolean isUserOnline(String username) throws SQLException {
         String sql = "SELECT online FROM users WHERE username = ?";
 
-        // Using try-with-resources to automatically close the connection and statement
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
 
             ps.setString(1, username);
-
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    // Returns the boolean value from the 'online' column
                     return rs.getBoolean("online");
                 }
             }
         }
-        // Default to false if the user is not found in the database
         return false;
     }
 }

@@ -41,91 +41,15 @@ public class RegistrationPage extends JFrame {
     private JLabel        errorLabel;
 
     public RegistrationPage() {
-        setTitle("UkmaChat — Create Account");
+        setTitle("Chat — Create Account");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setResizable(false);
-        setSize(860, 560); // Slightly taller to accommodate extra fields gracefully
+        setSize(450, 560);
         setLocationRelativeTo(null);
 
-        JPanel root = new JPanel(new GridLayout(1, 2));
-        root.add(buildAccentPanel());
-        root.add(buildFormPanel());
-        setContentPane(root);
+        setContentPane(buildFormPanel());
     }
 
-    // ── left decorative panel ─────────────────────────────────────────────────
-    private JPanel buildAccentPanel() {
-        JPanel panel = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                // gradient backdrop
-                GradientPaint gp = new GradientPaint(
-                        0, 0,               new Color(0x1E1F2E),
-                        getWidth(), getHeight(), new Color(0x2A2D50));
-                g2.setPaint(gp);
-                g2.fillRect(0, 0, getWidth(), getHeight());
-
-                // decorative circles
-                g2.setColor(new Color(0x4F80FF, false));
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.12f));
-                g2.fillOval(-60, -60, 280, 280);
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.08f));
-                g2.fillOval(getWidth() - 140, getHeight() - 160, 260, 260);
-                g2.dispose();
-            }
-        };
-        panel.setLayout(new GridBagLayout());
-        panel.setPreferredSize(new Dimension(360, 560));
-
-        JPanel inner = new JPanel();
-        inner.setOpaque(false);
-        inner.setLayout(new BoxLayout(inner, BoxLayout.Y_AXIS));
-
-        // logo bubble
-        JPanel logoBubble = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(ACCENT_BLUE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
-                g2.setColor(Color.WHITE);
-                g2.setFont(new Font("Inter", Font.BOLD, 22));
-                FontMetrics fm = g2.getFontMetrics();
-                String ch = "C";
-                g2.drawString(ch,
-                        (getWidth() - fm.stringWidth(ch)) / 2,
-                        (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
-                g2.dispose();
-            }
-        };
-        logoBubble.setOpaque(false);
-        logoBubble.setPreferredSize(new Dimension(52, 52));
-        logoBubble.setMaximumSize(new Dimension(52, 52));
-        logoBubble.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel appName = new JLabel("Chatter");
-        appName.setFont(new Font("Inter", Font.BOLD, 28));
-        appName.setForeground(Color.WHITE);
-        appName.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel tagline = new JLabel("<html>Join the community.<br>Connect in real-time.</html>");
-        tagline.setFont(new Font("Inter", Font.PLAIN, 15));
-        tagline.setForeground(new Color(0xB0B8D4));
-        tagline.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        inner.add(logoBubble);
-        inner.add(Box.createVerticalStrut(18));
-        inner.add(appName);
-        inner.add(Box.createVerticalStrut(14));
-        inner.add(tagline);
-
-        panel.add(inner);
-        return panel;
-    }
 
     // ── right form panel ──────────────────────────────────────────────────────
     private JPanel buildFormPanel() {

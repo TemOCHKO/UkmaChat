@@ -6,13 +6,13 @@ import java.net.*;
 import java.util.List;
 import java.util.concurrent.*;
 
-public class SimpleServer {
+public class Server {
     private static final CopyOnWriteArrayList<ObjectOutputStream> clients = new CopyOnWriteArrayList<>();
 
     private final AuthService authService;
 
     private static final List<ClientHandler> activeClients = new CopyOnWriteArrayList<>();
-    public SimpleServer(AuthService authService) {
+    public Server(AuthService authService) {
         this.authService = authService;
     }
 

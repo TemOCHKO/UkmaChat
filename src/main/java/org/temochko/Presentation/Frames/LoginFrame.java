@@ -4,31 +4,25 @@ import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
 
-/**
- * LoginFrame — the entry screen for the chat application.
- * Follows a clean two-panel layout: left accent panel + right form panel.
- * All user actions are wired via LoginController.
- */
+
 public class LoginFrame extends JFrame {
 
     // ── palette ───────────────────────────────────────────────────────────────
     static final Color BG_MAIN      = new Color(0xF7F8FA);
-    static final Color BG_ACCENT    = new Color(0x1E1F2E);   // deep navy
-    static final Color ACCENT_BLUE  = new Color(0x4F80FF);   // brand blue
+    static final Color BG_ACCENT    = new Color(0x1E1F2E);
+    static final Color ACCENT_BLUE  = new Color(0x4F80FF);
     static final Color TEXT_PRIMARY = new Color(0x1A1B2E);
     static final Color TEXT_MUTED   = new Color(0x8A8FA3);
     static final Color BORDER_COLOR = new Color(0xE2E5EC);
     static final Color INPUT_BG     = new Color(0xFFFFFF);
     static final Color ERROR_COLOR  = new Color(0xE05260);
 
-    // ── fonts ─────────────────────────────────────────────────────────────────
     static final Font FONT_TITLE  = new Font("Inter",         Font.BOLD,   26);
     static final Font FONT_LABEL  = new Font("Inter",         Font.PLAIN,  13);
     static final Font FONT_INPUT  = new Font("Monospaced",    Font.PLAIN,  14);
     static final Font FONT_BTN    = new Font("Inter",         Font.BOLD,   14);
     static final Font FONT_LINK   = new Font("Inter",         Font.PLAIN,  13);
 
-    // ── components (package-private so controller can access) ─────────────────
     public JTextField     usernameField;
     public JPasswordField passwordField;
     public JButton        loginButton;
@@ -36,90 +30,13 @@ public class LoginFrame extends JFrame {
     JLabel         errorLabel;
 
     public LoginFrame() {
-        setTitle("UkmaChat — Sign in");
+        setTitle("Chat - Sign in");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setResizable(false);
-        setSize(860, 540);
+        setSize(450, 540);
         setLocationRelativeTo(null);
 
-        JPanel root = new JPanel(new GridLayout(1, 2));
-        root.add(buildAccentPanel());
-        root.add(buildFormPanel());
-        setContentPane(root);
-    }
-
-    // ── left decorative panel ─────────────────────────────────────────────────
-    private JPanel buildAccentPanel() {
-        JPanel panel = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                // gradient backdrop
-                GradientPaint gp = new GradientPaint(
-                        0, 0,               new Color(0x1E1F2E),
-                        getWidth(), getHeight(), new Color(0x2A2D50));
-                g2.setPaint(gp);
-                g2.fillRect(0, 0, getWidth(), getHeight());
-
-                // decorative circles
-                g2.setColor(new Color(0x4F80FF, false));
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.12f));
-                g2.fillOval(-60, -60, 280, 280);
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.08f));
-                g2.fillOval(getWidth() - 140, getHeight() - 160, 260, 260);
-                g2.dispose();
-            }
-        };
-        panel.setLayout(new GridBagLayout());
-        panel.setPreferredSize(new Dimension(360, 540));
-
-        JPanel inner = new JPanel();
-        inner.setOpaque(false);
-        inner.setLayout(new BoxLayout(inner, BoxLayout.Y_AXIS));
-
-        // logo bubble
-        JPanel logoBubble = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(ACCENT_BLUE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
-                g2.setColor(Color.WHITE);
-                g2.setFont(new Font("Inter", Font.BOLD, 22));
-                FontMetrics fm = g2.getFontMetrics();
-                String ch = "C";
-                g2.drawString(ch,
-                        (getWidth() - fm.stringWidth(ch)) / 2,
-                        (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
-                g2.dispose();
-            }
-        };
-        logoBubble.setOpaque(false);
-        logoBubble.setPreferredSize(new Dimension(52, 52));
-        logoBubble.setMaximumSize(new Dimension(52, 52));
-        logoBubble.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel appName = new JLabel("Chatter");
-        appName.setFont(new Font("Inter", Font.BOLD, 28));
-        appName.setForeground(Color.WHITE);
-        appName.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel tagline = new JLabel("<html>Messages that<br>feel like presence.</html>");
-        tagline.setFont(new Font("Inter", Font.PLAIN, 15));
-        tagline.setForeground(new Color(0xB0B8D4));
-        tagline.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        inner.add(logoBubble);
-        inner.add(Box.createVerticalStrut(18));
-        inner.add(appName);
-        inner.add(Box.createVerticalStrut(14));
-        inner.add(tagline);
-
-        panel.add(inner);
-        return panel;
+        setContentPane(buildFormPanel());
     }
 
     // ── right form panel ──────────────────────────────────────────────────────
@@ -142,7 +59,7 @@ public class LoginFrame extends JFrame {
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // error label (hidden by default)
+        // error label
         errorLabel = new JLabel(" ");
         errorLabel.setFont(new Font("Inter", Font.PLAIN, 12));
         errorLabel.setForeground(ERROR_COLOR);
@@ -313,18 +230,15 @@ public class LoginFrame extends JFrame {
         return p;
     }
 
-    /** Sets an error message below the subtitle. Empty string clears it. */
     public void setError(String message) {
         errorLabel.setText(message == null || message.isEmpty() ? " " : message);
     }
 
-    /** Enables or disables the login button (use during async auth). */
     public void setLoading(boolean loading) {
         loginButton.setEnabled(!loading);
         loginButton.setText(loading ? "Signing in…" : "Sign in");
     }
 
-    // ── inner: rounded border used by inputs ──────────────────────────────────
     static class RoundedBorder extends AbstractBorder {
         private final Color color;
         private final int   thickness;

@@ -4,7 +4,6 @@ import java.io.*;
 import java.net.Socket;
 import java.security.KeyPair;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -101,7 +100,7 @@ public class ClientHandler extends Thread{
                             MessageRepository msgRepo = new MessageRepository();
                             msgRepo.saveMessage(new ChatMessage(msg.username, msg.from, msg.message, msg.timestamp));
 
-                            ClientHandler recipient = SimpleServer.getClientByUsername(msg.username);
+                            ClientHandler recipient = Server.getClientByUsername(msg.username);
                             if (recipient != null) {
                                 recipient.sendMessageToClient(packet);
                             }
@@ -147,7 +146,7 @@ public class ClientHandler extends Thread{
 
                         ChatMessage chatMsg = (ChatMessage) request;
                         messageRepository.saveMessage(new ChatMessage(chatMsg.username, chatMsg.from, chatMsg.message, chatMsg.timestamp));
-                        ClientHandler recipient = SimpleServer.getClientByUsername(chatMsg.username);
+                        ClientHandler recipient = Server.getClientByUsername(chatMsg.username);
 
                         if (recipient != null) {
                             recipient.sendMessageToClient(chatMsg);
@@ -187,7 +186,7 @@ public class ClientHandler extends Thread{
             }
 
             // disconnect client
-            SimpleServer.removeClient(this);
+            Server.removeClient(this);
             try {
                 if (socket != null) socket.close();
             } catch (Exception ignored) {}
