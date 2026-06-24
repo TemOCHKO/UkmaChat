@@ -4,6 +4,8 @@ import org.temochko.Business.DTOs.KeyExchanges.EncryptedAesKeyExchange;
 import org.temochko.Business.DTOs.KeyExchanges.RsaPublicKeyExchange;
 import org.temochko.Business.DTOs.Login.LoginRequestDto;
 import org.temochko.Business.DTOs.Login.LoginResponseDto;
+import org.temochko.Business.DTOs.Message.ChatHistoryRequestDto;
+import org.temochko.Business.DTOs.Message.ChatHistoryResponseDto;
 import org.temochko.Business.DTOs.Message.ChatMessage;
 import org.temochko.Business.DTOs.PingDto;
 import org.temochko.Business.DTOs.Register.RegisterRequestDto;
@@ -17,6 +19,7 @@ import org.temochko.NetworkLayer.Protocol.Encrypter;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
@@ -41,6 +44,7 @@ public class NetworkClient {
     private Thread listenerThread;
     private Consumer<ChatMessage> onMessageReceived;
     private Consumer<SearchUserResponseDto> onSearchResponseReceived;
+    private Consumer<ChatHistoryResponseDto> onHistoryResponseReceived;
 
     private Encrypter encrypter = new Encrypter();
     private Decrypter decrypter = new Decrypter();
@@ -78,7 +82,7 @@ public class NetworkClient {
         out.writeObject(new EncryptedAesKeyExchange(encryptedAesKey));
         out.flush();
 
-        startHeartbeat();
+        //startHeartbeat();
     }
 
     public LoginResponseDto sendLoginRequest(String username, String rawPassword) throws Exception {
@@ -112,10 +116,14 @@ public class NetworkClient {
     public void sendSetOnlineRequest(String username, boolean online) throws Exception {
         out.writeObject(new UserSetOnlineRequestDto(username, online));
         out.flush();
-
     }
 
-    private void startHeartbeat() {
+    public void sendHistoryRequest(String username) throws IOException {
+        out.writeObject(new ChatHistoryRequestDto(username));
+        out.flush();
+    }
+
+    /*private void startHeartbeat() {
         heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
         // every 15 secs
         heartbeatScheduler.scheduleAtFixedRate(() -> {
@@ -130,7 +138,7 @@ public class NetworkClient {
                 System.exit(0);
             }
         }, 15, 15, TimeUnit.SECONDS);
-    }
+    }*/
 
     public void disconnect() {
         try {
@@ -183,10 +191,20 @@ public class NetworkClient {
                             onSearchResponseReceived.accept(response);
                         }
                     }
+                    else if (incoming instanceof ChatHistoryResponseDto) {
+                        ChatHistoryResponseDto response = (ChatHistoryResponseDto) incoming;
+                        if (onHistoryResponseReceived != null) {
+                            onHistoryResponseReceived.accept(response);
+                        }
+                    }
                 }
             } catch (Exception e) {
             }
         });
         listenerThread.start();
+    }
+
+    public void setOnHistoryReceived(Consumer<ChatHistoryResponseDto> o) {
+        this.onHistoryResponseReceived = o;
     }
 }

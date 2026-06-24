@@ -2,7 +2,7 @@ package org.temochko.Business.Controllers;
 
 import org.temochko.Business.DTOs.Message.ChatMessage;
 import org.temochko.Business.DTOs.User.UserSummaryDto;
-import org.temochko.Presentation.ChatFrame;
+import org.temochko.Presentation.Frames.ChatFrame;
 import org.temochko.NetworkLayer.ClientSide.NetworkClient;
 
 import javax.swing.*;
@@ -79,10 +79,21 @@ public class MainController {
         view.chatHeaderDetails.setText(currentChatUser.isOnline ? "online" : "offline");
         view.clearMessages();
 
-        List<ChatMessage> history = localMessageCache.getOrDefault(currentChatUser.username, new ArrayList<>());
-        for (ChatMessage msg : history) {
-            boolean isMine = msg.from.equals(view.getCurrentUser());
-            view.addMessage(isMine ? "You" : msg.from, msg.message, msg.timestamp, isMine);
+        if (!localMessageCache.containsKey(currentChatUser.username)) {
+            SwingWorker<Void, Void> worker = new SwingWorker<>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    networkClient.sendHistoryRequest(currentChatUser.username);
+                    return null;
+                }
+            };
+            worker.execute();
+        } else {
+            List<ChatMessage> history = localMessageCache.get(currentChatUser.username);
+            for (ChatMessage msg : history) {
+                boolean isMine = msg.from.equals(view.getCurrentUser());
+                view.addMessage(isMine ? "You" : msg.from, msg.message, msg.timestamp, isMine);
+            }
         }
     }
 
@@ -165,6 +176,20 @@ public class MainController {
                 } else {
                     // chat with sender is not open
                     updateSidebarWithUnreadNotification(msg.from);
+                }
+            });
+        });
+
+        networkClient.setOnHistoryReceived(dto -> {
+            SwingUtilities.invokeLater(() -> {
+                localMessageCache.put(dto.targetUsername, dto.history);
+
+                if (currentChatUser != null && currentChatUser.username.equals(dto.targetUsername)) {
+                    view.clearMessages();
+                    for (ChatMessage msg : dto.history) {
+                        boolean isMine = msg.from.equals(view.getCurrentUser());
+                        view.addMessage(isMine ? "You" : msg.from, msg.message, msg.timestamp, isMine);
+                    }
                 }
             });
         });

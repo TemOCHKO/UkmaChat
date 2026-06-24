@@ -3,12 +3,18 @@ package org.temochko.NetworkLayer.ServerSide;
 import java.io.*;
 import java.net.Socket;
 import java.security.KeyPair;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import org.temochko.Business.AuthService;
 import org.temochko.Business.DTOs.KeyExchanges.EncryptedAesKeyExchange;
 import org.temochko.Business.DTOs.KeyExchanges.RsaPublicKeyExchange;
 import org.temochko.Business.DTOs.Login.LoginRequestDto;
 import org.temochko.Business.DTOs.Login.LoginResponseDto;
+import org.temochko.Business.DTOs.Message.ChatHistoryRequestDto;
+import org.temochko.Business.DTOs.Message.ChatHistoryResponseDto;
 import org.temochko.Business.DTOs.Message.ChatMessage;
 import org.temochko.Business.DTOs.PingDto;
 import org.temochko.Business.DTOs.Register.RegisterRequestDto;
@@ -17,6 +23,7 @@ import org.temochko.Business.DTOs.User.SearchUserRequestDto;
 import org.temochko.Business.DTOs.User.SearchUserResponseDto;
 import org.temochko.Business.DTOs.User.UserSetOnlineRequestDto;
 import org.temochko.Business.Utils.CryptoUtils;
+import org.temochko.DataAccess.Repositories.MessageRepository;
 import org.temochko.NetworkLayer.Protocol.Decrypter;
 
 import javax.crypto.Cipher;
@@ -91,16 +98,15 @@ public class ClientHandler extends Thread{
                             Decrypter decrypter = new Decrypter();
                             ChatMessage msg = decrypter.decrypt(packet);
 
-                            String targetUsername = msg.username;
-                            ClientHandler recipient = SimpleServer.getClientByUsername(targetUsername);
+                            MessageRepository msgRepo = new MessageRepository();
+                            msgRepo.saveMessage(new ChatMessage(msg.username, msg.from, msg.message, msg.timestamp));
 
+                            ClientHandler recipient = SimpleServer.getClientByUsername(msg.username);
                             if (recipient != null) {
                                 recipient.sendMessageToClient(packet);
-                            } else {
-                                System.out.println("Client " + targetUsername + " is offline");
                             }
                         } catch (Exception e) {
-                            System.err.println("Error " + e.getMessage());
+                            System.err.println("Error: " + e.getMessage());
                         }
                     }
 
@@ -137,15 +143,32 @@ public class ClientHandler extends Thread{
                         // update online status
                         authService.setOnline(((UserSetOnlineRequestDto) request).username, ((UserSetOnlineRequestDto) request).online);
                     } else if (request instanceof ChatMessage) {
+                        MessageRepository messageRepository = new MessageRepository();
+
                         ChatMessage chatMsg = (ChatMessage) request;
-
-                        // messageRepository.save(chatMsg.senderUsername, chatMsg.targetUsername, chatMsg.text);
-
+                        messageRepository.saveMessage(new ChatMessage(chatMsg.username, chatMsg.from, chatMsg.message, chatMsg.timestamp));
                         ClientHandler recipient = SimpleServer.getClientByUsername(chatMsg.username);
 
                         if (recipient != null) {
                             recipient.sendMessageToClient(chatMsg);
                         }
+                    } else if (request instanceof ChatHistoryRequestDto) {
+                        MessageRepository messageRepository = new MessageRepository();
+                        ChatHistoryRequestDto historyReq = (ChatHistoryRequestDto) request;
+
+                        List<ChatMessage> dbHistory = messageRepository.getChatHistory(this.loggedInUsername, historyReq.targetUsername);
+                        List<ChatMessage> dtoHistory = new java.util.ArrayList<>();
+
+                        for (ChatMessage dbMsg : dbHistory) {
+                            LocalDateTime dateTime = LocalDateTime.parse(dbMsg.timestamp);
+                            DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("HH:mm");
+                            String timeStr = dateTime.format(outputFormatter);
+
+                            dtoHistory.add(new ChatMessage(historyReq.targetUsername, dbMsg.from, dbMsg.message, timeStr));
+                        }
+
+                        out.writeObject(new ChatHistoryResponseDto(historyReq.targetUsername, dtoHistory));
+                        out.flush();
                     }
                 }
             }

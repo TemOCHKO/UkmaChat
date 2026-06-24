@@ -1,22 +1,21 @@
-package org.temochko.Presentation;
+package org.temochko.Presentation.Frames;
 
 import javax.swing.*;
-import javax.swing.border.*;
 import java.awt.*;
-import java.awt.event.*;
-import java.awt.geom.*;
+
+import javax.swing.border.*;
 
 /**
- * LoginFrame — the entry screen for the chat application.
- * Follows a clean two-panel layout: left accent panel + right form panel.
- * All user actions are wired via LoginController.
+ * RegistrationFrame — the sign-up screen for the chat application.
+ * Styled to match LoginFrame perfectly.
+ * Exposes fields so a RegistrationController can wire up the logic.
  */
-public class LoginFrame extends JFrame {
+public class RegistrationPage extends JFrame {
 
     // ── palette ───────────────────────────────────────────────────────────────
     static final Color BG_MAIN      = new Color(0xF7F8FA);
-    static final Color BG_ACCENT    = new Color(0x1E1F2E);   // deep navy
-    static final Color ACCENT_BLUE  = new Color(0x4F80FF);   // brand blue
+    static final Color BG_ACCENT    = new Color(0x1E1F2E);
+    static final Color ACCENT_BLUE  = new Color(0x4F80FF);
     static final Color TEXT_PRIMARY = new Color(0x1A1B2E);
     static final Color TEXT_MUTED   = new Color(0x8A8FA3);
     static final Color BORDER_COLOR = new Color(0xE2E5EC);
@@ -30,18 +29,22 @@ public class LoginFrame extends JFrame {
     static final Font FONT_BTN    = new Font("Inter",         Font.BOLD,   14);
     static final Font FONT_LINK   = new Font("Inter",         Font.PLAIN,  13);
 
-    // ── components (package-private so controller can access) ─────────────────
+    // ── components (public so controller can access) ──────────────────────────
     public JTextField     usernameField;
+    public JTextField     emailField;
     public JPasswordField passwordField;
-    public JButton        loginButton;
-    public JButton        registerButton;
-    JLabel         errorLabel;
+    public JPasswordField confirmPasswordField;
 
-    public LoginFrame() {
-        setTitle("UkmaChat — Sign in");
+    public JButton        registerButton;
+    public JButton        loginButton; // Button to go back to login
+
+    private JLabel        errorLabel;
+
+    public RegistrationPage() {
+        setTitle("UkmaChat — Create Account");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setResizable(false);
-        setSize(860, 540);
+        setSize(860, 560); // Slightly taller to accommodate extra fields gracefully
         setLocationRelativeTo(null);
 
         JPanel root = new JPanel(new GridLayout(1, 2));
@@ -75,7 +78,7 @@ public class LoginFrame extends JFrame {
             }
         };
         panel.setLayout(new GridBagLayout());
-        panel.setPreferredSize(new Dimension(360, 540));
+        panel.setPreferredSize(new Dimension(360, 560));
 
         JPanel inner = new JPanel();
         inner.setOpaque(false);
@@ -109,7 +112,7 @@ public class LoginFrame extends JFrame {
         appName.setForeground(Color.WHITE);
         appName.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel tagline = new JLabel("<html>Messages that<br>feel like presence.</html>");
+        JLabel tagline = new JLabel("<html>Join the community.<br>Connect in real-time.</html>");
         tagline.setFont(new Font("Inter", Font.PLAIN, 15));
         tagline.setForeground(new Color(0xB0B8D4));
         tagline.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -132,40 +135,32 @@ public class LoginFrame extends JFrame {
         JPanel form = new JPanel();
         form.setOpaque(false);
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-        form.setPreferredSize(new Dimension(320, 420));
+        form.setPreferredSize(new Dimension(320, 480)); // Slightly taller for more fields
 
-        JLabel title = new JLabel("Welcome back");
+        JLabel title = new JLabel("Create Account");
         title.setFont(FONT_TITLE);
         title.setForeground(TEXT_PRIMARY);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel subtitle = new JLabel("Sign in to your account");
+        JLabel subtitle = new JLabel("Sign up for a new account");
         subtitle.setFont(FONT_LABEL);
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // error label (hidden by default)
+        // error label
         errorLabel = new JLabel(" ");
         errorLabel.setFont(new Font("Inter", Font.PLAIN, 12));
         errorLabel.setForeground(ERROR_COLOR);
         errorLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // username
-        JLabel userLabel = fieldLabel("Username");
+        // Inputs
         usernameField = styledTextField("your_username");
-
-        // password
-        JLabel passLabel = fieldLabel("Password");
+        emailField = styledTextField("student@ukma.edu.ua");
         passwordField  = styledPasswordField();
-
-        // remember + forgot
-        JPanel rememberRow = new JPanel(new BorderLayout());
-        rememberRow.setOpaque(false);
-        rememberRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
-
+        confirmPasswordField = styledPasswordField();
 
         // primary button
-        loginButton = new JButton("Sign in") {
+        registerButton = new JButton("Sign up") {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -182,13 +177,13 @@ public class LoginFrame extends JFrame {
                 g2.dispose();
             }
         };
-        styleButton(loginButton, true);
+        styleButton(registerButton, true);
 
         // divider
         JPanel divider = buildDivider("or");
 
-        // register button
-        registerButton = new JButton("Create an account") {
+        // secondary button
+        loginButton = new JButton("Sign in instead") {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -205,30 +200,40 @@ public class LoginFrame extends JFrame {
                 g2.dispose();
             }
         };
-        styleButton(registerButton, false);
+        styleButton(loginButton, false);
 
-        // assemble
+        // assemble (tightened struts for 4 fields)
         form.add(title);
         form.add(Box.createVerticalStrut(4));
         form.add(subtitle);
-        form.add(Box.createVerticalStrut(20));
+        form.add(Box.createVerticalStrut(10));
         form.add(errorLabel);
+
+        form.add(fieldLabel("Username"));
         form.add(Box.createVerticalStrut(4));
-        form.add(userLabel);
-        form.add(Box.createVerticalStrut(6));
         form.add(usernameField);
-        form.add(Box.createVerticalStrut(14));
-        form.add(passLabel);
-        form.add(Box.createVerticalStrut(6));
+        form.add(Box.createVerticalStrut(10));
+
+        form.add(fieldLabel("Email"));
+        form.add(Box.createVerticalStrut(4));
+        form.add(emailField);
+        form.add(Box.createVerticalStrut(10));
+
+        form.add(fieldLabel("Password"));
+        form.add(Box.createVerticalStrut(4));
         form.add(passwordField);
         form.add(Box.createVerticalStrut(10));
-        form.add(rememberRow);
-        form.add(Box.createVerticalStrut(20));
-        form.add(loginButton);
-        form.add(Box.createVerticalStrut(16));
-        form.add(divider);
-        form.add(Box.createVerticalStrut(16));
+
+        form.add(fieldLabel("Confirm Password"));
+        form.add(Box.createVerticalStrut(4));
+        form.add(confirmPasswordField);
+
+        form.add(Box.createVerticalStrut(18));
         form.add(registerButton);
+        form.add(Box.createVerticalStrut(12));
+        form.add(divider);
+        form.add(Box.createVerticalStrut(12));
+        form.add(loginButton);
 
         panel.add(form);
         return panel;
@@ -265,8 +270,8 @@ public class LoginFrame extends JFrame {
         tf.setCaretColor(ACCENT_BLUE);
         tf.setBorder(new CompoundBorder(
                 new RoundedBorder(BORDER_COLOR, 1, 9),
-                new EmptyBorder(9, 12, 9, 12)));
-        tf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+                new EmptyBorder(7, 12, 7, 12))); // slightly smaller padding
+        tf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
         tf.setAlignmentX(Component.LEFT_ALIGNMENT);
         return tf;
     }
@@ -279,8 +284,8 @@ public class LoginFrame extends JFrame {
         pf.setCaretColor(ACCENT_BLUE);
         pf.setBorder(new CompoundBorder(
                 new RoundedBorder(BORDER_COLOR, 1, 9),
-                new EmptyBorder(9, 12, 9, 12)));
-        pf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+                new EmptyBorder(7, 12, 7, 12))); // slightly smaller padding
+        pf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
         pf.setAlignmentX(Component.LEFT_ALIGNMENT);
         return pf;
     }
@@ -290,8 +295,8 @@ public class LoginFrame extends JFrame {
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
         btn.setOpaque(false);
-        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-        btn.setPreferredSize(new Dimension(Integer.MAX_VALUE, 44));
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        btn.setPreferredSize(new Dimension(Integer.MAX_VALUE, 42));
         btn.setAlignmentX(Component.LEFT_ALIGNMENT);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
@@ -315,15 +320,13 @@ public class LoginFrame extends JFrame {
         return p;
     }
 
-    /** Sets an error message below the subtitle. Empty string clears it. */
     public void setError(String message) {
         errorLabel.setText(message == null || message.isEmpty() ? " " : message);
     }
 
-    /** Enables or disables the login button (use during async auth). */
     public void setLoading(boolean loading) {
-        loginButton.setEnabled(!loading);
-        loginButton.setText(loading ? "Signing in…" : "Sign in");
+        registerButton.setEnabled(!loading);
+        registerButton.setText(loading ? "Creating account…" : "Sign up");
     }
 
     // ── inner: rounded border used by inputs ──────────────────────────────────

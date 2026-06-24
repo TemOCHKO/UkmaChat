@@ -6,9 +6,9 @@ import org.temochko.Business.Validators.LoginValidator;
 import org.temochko.Business.Validators.RegisterValidator;
 import org.temochko.Business.Validators.ValidationResult;
 import org.temochko.NetworkLayer.ClientSide.NetworkClient;
-import org.temochko.Presentation.ChatFrame;
-import org.temochko.Presentation.LoginFrame;
-import org.temochko.Presentation.RegistrationPage;
+import org.temochko.Presentation.Frames.ChatFrame;
+import org.temochko.Presentation.Frames.LoginFrame;
+import org.temochko.Presentation.Frames.RegistrationPage;
 
 import javax.swing.*;
 import java.awt.event.*;

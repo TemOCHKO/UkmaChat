@@ -3,6 +3,8 @@ package org.temochko.Presentation;
 
 import org.temochko.NetworkLayer.ClientSide.NetworkClient;
 import org.temochko.Business.Controllers.LoginController;
+import org.temochko.Presentation.Frames.LoginFrame;
+import org.temochko.Presentation.Frames.RegistrationPage;
 
 import javax.swing.*;
 
