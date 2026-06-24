@@ -17,6 +17,7 @@ import org.temochko.Business.DTOs.User.SearchUserRequestDto;
 import org.temochko.Business.DTOs.User.SearchUserResponseDto;
 import org.temochko.Business.DTOs.User.UserSetOnlineRequestDto;
 import org.temochko.Business.Utils.CryptoUtils;
+import org.temochko.NetworkLayer.Protocol.Decrypter;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -83,6 +84,26 @@ public class ClientHandler extends Thread{
                         continue;
                     }
 
+                    else if (request instanceof byte[]) {
+                        byte[] packet = (byte[]) request;
+
+                        try {
+                            Decrypter decrypter = new Decrypter();
+                            ChatMessage msg = decrypter.decrypt(packet);
+
+                            String targetUsername = msg.username;
+                            ClientHandler recipient = SimpleServer.getClientByUsername(targetUsername);
+
+                            if (recipient != null) {
+                                recipient.sendMessageToClient(packet);
+                            } else {
+                                System.out.println("Client " + targetUsername + " is offline");
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Error " + e.getMessage());
+                        }
+                    }
+
                     if (request instanceof LoginRequestDto) {
                         LoginRequestDto loginReq = (LoginRequestDto) request;
 
@@ -132,9 +153,11 @@ public class ClientHandler extends Thread{
                 e.printStackTrace();
             }
         } catch (EOFException | java.net.SocketException e) {
-            e.printStackTrace();
+
         } catch (Exception e) {
+            System.err.println("Error handling client: " + e.getMessage());
             e.printStackTrace();
+
         } finally {
             if (loggedInUsername != null) {
                 authService.setOnline(loggedInUsername, false);
@@ -142,7 +165,9 @@ public class ClientHandler extends Thread{
 
             // disconnect client
             SimpleServer.removeClient(this);
-            try { if (socket != null) socket.close(); } catch (Exception ex) {}
+            try {
+                if (socket != null) socket.close();
+            } catch (Exception ignored) {}
         }
 
     }

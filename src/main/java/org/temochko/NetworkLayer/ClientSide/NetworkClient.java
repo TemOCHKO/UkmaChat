@@ -12,10 +12,11 @@ import org.temochko.Business.DTOs.User.SearchUserRequestDto;
 import org.temochko.Business.DTOs.User.SearchUserResponseDto;
 import org.temochko.Business.DTOs.User.UserSetOnlineRequestDto;
 import org.temochko.Business.Utils.CryptoUtils;
+import org.temochko.NetworkLayer.Protocol.Decrypter;
+import org.temochko.NetworkLayer.Protocol.Encrypter;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
@@ -41,6 +42,9 @@ public class NetworkClient {
     private Consumer<ChatMessage> onMessageReceived;
     private Consumer<SearchUserResponseDto> onSearchResponseReceived;
 
+    private Encrypter encrypter = new Encrypter();
+    private Decrypter decrypter = new Decrypter();
+
     public NetworkClient(String serverAddress, int serverPort) {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
@@ -49,7 +53,6 @@ public class NetworkClient {
     public void setOnSearchResponseReceived(Consumer<SearchUserResponseDto> callback) {
         this.onSearchResponseReceived = callback;
     }
-
 
     // get a connection with the server and exhcange keys
     public void connect() throws Exception {
@@ -139,8 +142,9 @@ public class NetworkClient {
         }
     }
 
-    public void sendMessage(ChatMessage chatMessage) throws IOException {
-        out.writeObject(chatMessage);
+    public void sendMessage(ChatMessage chatMessage) throws Exception {
+        byte[] packet = encrypter.encrypt(chatMessage);
+        out.writeObject(packet);
         out.flush();
     }
 
@@ -154,6 +158,18 @@ public class NetworkClient {
             try {
                 while (!socket.isClosed()) {
                     Object incoming = in.readObject();
+
+                    if (incoming instanceof byte[]) {
+                        byte[] packet = (byte[]) incoming;
+                        try {
+                            ChatMessage decryptedMsg = decrypter.decrypt(packet);
+                            if (onMessageReceived != null) {
+                                onMessageReceived.accept(decryptedMsg);
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Decrypter error " + e.getMessage());
+                        }
+                    }
 
                     if (incoming instanceof ChatMessage) {
                         ChatMessage msg = (ChatMessage) incoming;
