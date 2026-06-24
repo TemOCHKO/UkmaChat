@@ -5,7 +5,14 @@ import java.net.Socket;
 import java.security.KeyPair;
 
 import org.temochko.Business.AuthService;
-import org.temochko.Business.DTOs.*;
+import org.temochko.Business.DTOs.KeyExchanges.EncryptedAesKeyExchange;
+import org.temochko.Business.DTOs.KeyExchanges.RsaPublicKeyExchange;
+import org.temochko.Business.DTOs.Login.LoginRequestDto;
+import org.temochko.Business.DTOs.Login.LoginResponseDto;
+import org.temochko.Business.DTOs.Register.RegisterRequestDto;
+import org.temochko.Business.DTOs.Register.RegisterResponseDto;
+import org.temochko.Business.DTOs.User.SearchUserRequestDto;
+import org.temochko.Business.DTOs.User.SearchUserResponseDto;
 import org.temochko.Business.Utils.CryptoUtils;
 
 import javax.crypto.Cipher;
@@ -61,14 +68,20 @@ public class ClientHandler extends Thread{
 
                         out.writeObject(response);
                         out.flush();
-                    }
-                    else if (request instanceof RegisterRequestDto) {
+                    } else if (request instanceof RegisterRequestDto) {
                         RegisterRequestDto regReq = (RegisterRequestDto) request;
 
                         String decryptedPassword = CryptoUtils.decryptString(regReq.password, aesSessionKey);
                         RegisterResponseDto response = authService.register(regReq.username, decryptedPassword, regReq.email);
 
                         out.writeObject(response);
+                        out.flush();
+                    } else if (request instanceof SearchUserRequestDto) {
+                        SearchUserRequestDto searchReq = (SearchUserRequestDto) request;
+
+                        SearchUserResponseDto responseDto = authService.searchUsers(searchReq.searchQuery);
+
+                        out.writeObject(responseDto);
                         out.flush();
                     }
                 }

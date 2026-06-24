@@ -2,7 +2,14 @@ package org.temochko.NetworkLayer;
 
 
 
-import org.temochko.Business.DTOs.*;
+import org.temochko.Business.DTOs.KeyExchanges.EncryptedAesKeyExchange;
+import org.temochko.Business.DTOs.KeyExchanges.RsaPublicKeyExchange;
+import org.temochko.Business.DTOs.Login.LoginRequestDto;
+import org.temochko.Business.DTOs.Login.LoginResponseDto;
+import org.temochko.Business.DTOs.Register.RegisterRequestDto;
+import org.temochko.Business.DTOs.Register.RegisterResponseDto;
+import org.temochko.Business.DTOs.User.SearchUserRequestDto;
+import org.temochko.Business.DTOs.User.SearchUserResponseDto;
 import org.temochko.Business.Utils.CryptoUtils;
 
 import javax.crypto.Cipher;
@@ -75,6 +82,13 @@ public class NetworkClient {
         out.flush();
 
         return (RegisterResponseDto) in.readObject();
+    }
+
+    public SearchUserResponseDto sendSearchUserRequest(String username) throws Exception {
+        out.writeObject(new SearchUserRequestDto(username));
+        out.flush();
+
+        return (SearchUserResponseDto) in.readObject();
     }
 
     public void disconnect() {

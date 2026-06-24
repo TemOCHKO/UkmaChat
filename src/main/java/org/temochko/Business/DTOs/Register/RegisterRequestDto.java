@@ -1,4 +1,4 @@
-package org.temochko.Business.DTOs;
+package org.temochko.Business.DTOs.Register;
 
 import java.io.Serializable;
 

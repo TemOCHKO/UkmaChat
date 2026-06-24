@@ -1,23 +1,20 @@
 package org.temochko.Business.Controllers;
 
-import org.temochko.Business.DTOs.LoginResponseDto;
-import org.temochko.Business.DTOs.RegisterResponseDto;
+import org.temochko.Business.DTOs.Login.LoginResponseDto;
+import org.temochko.Business.DTOs.Register.RegisterResponseDto;
 import org.temochko.NetworkLayer.NetworkClient;
+import org.temochko.Presentation.ChatFrame;
 import org.temochko.Presentation.LoginFrame;
-import org.temochko.Presentation.MainFrame;
 import org.temochko.Presentation.RegistrationPage;
 
 import javax.swing.*;
 import java.awt.event.*;
 
-/**
- * LoginController — handles all interaction on LoginFrame.
- */
 public class LoginController {
 
     private final LoginFrame view;
     private final RegistrationPage registrationPage;
-    private final NetworkClient networkClient; // Тепер контролер працює з мережею, а не напряму з БД
+    private final NetworkClient networkClient;
 
     public LoginController(LoginFrame view, RegistrationPage registrationPage, NetworkClient networkClient) {
         this.view = view;
@@ -65,9 +62,10 @@ public class LoginController {
         if (response.success) {
             view.dispose();
             registrationPage.dispose();
-            MainFrame main = new MainFrame(username);
-            new MainController(main);
-            main.setVisible(true);
+
+            ChatFrame chatFrame = new ChatFrame(username);
+            new MainController(chatFrame, networkClient);
+            chatFrame.setVisible(true);
         } else {
             view.setError(response.message);
         }

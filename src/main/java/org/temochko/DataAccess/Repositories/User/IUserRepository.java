@@ -13,4 +13,5 @@ public interface IUserRepository {
     User save(String username, String email, String passwordHash) throws SQLException;
     void setOnline(int userId, boolean online) throws SQLException;
     List<User> findAllExcept(int excludeId) throws SQLException;
+    List<User> searchByUsername(String query) throws SQLException;
 }

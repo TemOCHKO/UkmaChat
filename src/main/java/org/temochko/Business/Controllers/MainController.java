@@ -1,241 +1,165 @@
 package org.temochko.Business.Controllers;
 
+import org.temochko.Business.DTOs.User.SearchUserResponseDto;
+import org.temochko.Business.DTOs.User.UserSummaryDto;
+import org.temochko.Presentation.ChatFrame;
 import org.temochko.NetworkLayer.NetworkClient;
-import org.temochko.Presentation.LoginFrame;
-import org.temochko.Presentation.MainFrame;
-import org.temochko.Presentation.RegistrationPage;
 
 import javax.swing.*;
-import java.awt.event.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-/**
- * MainController — wires all buttons and events in MainFrame.
- *
- * Follows the MVC pattern: the controller holds references to both the
- * view (MainFrame) and the service layer (injected via constructor), and
- * translates UI events into service calls, then updates the view with results.
- *
- * Nothing in this class touches Swing layout directly; it only reads/writes
- * the public fields and methods exposed by MainFrame.
- */
 public class MainController {
 
-    private final MainFrame view;
-    // private final ChatService chatService;   // inject your service layer here
+    private final ChatFrame view;
+    private final NetworkClient networkClient;
+    private ChatFrame.ContactItem currentChatUser;
 
-    private static final DateTimeFormatter TIME_FMT =
-            DateTimeFormatter.ofPattern("HH:mm");
-
-    public MainController(MainFrame view /*, ChatService chatService */) {
+    public MainController(ChatFrame view, NetworkClient networkClient) {
         this.view = view;
-        // this.chatService = chatService;
+        this.networkClient = networkClient;
+
+        initView();
         wireEvents();
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // WIRING
-    // ═══════════════════════════════════════════════════════════════════════════
+    private void initView() {
+        // TODO: Replace with an actual call to fetch friends/contacts from DB
+        view.contactModel.addElement(new ChatFrame.ContactItem("Vincent Porter", true, "online"));
+        view.contactModel.addElement(new ChatFrame.ContactItem("Aiden Chavez", false, "left 7 min ago"));
+        view.contactModel.addElement(new ChatFrame.ContactItem("Mike Thomas", true, "online"));
+        view.contactModel.addElement(new ChatFrame.ContactItem("Erika Hughes", true, "online"));
+        view.contactModel.addElement(new ChatFrame.ContactItem("Monica Ward", true, "online"));
+
+        view.messageInputField.setEnabled(false);
+        view.sendButton.setEnabled(false);
+    }
+
     private void wireEvents() {
-        wireNavButtons();
-        wireSendButton();
-        wireEnterKey();
-        wireConversationRows();
-        wireNewChatButton();
-        wireAttachButton();
-        wireSearchField();
-    }
+        view.contactList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                onContactSelected();
+            }
+        });
 
-    // ── nav buttons ───────────────────────────────────────────────────────────
-    private void wireNavButtons() {
-        view.btnNavChats.addActionListener(e -> onNavChats());
-        view.btnNavSettings.addActionListener(e -> onNavSettings());
-        view.btnNavLogout.addActionListener(e -> onNavLogout());
-    }
+        view.sendButton.addActionListener(e -> onSendMessage());
 
-    private void onNavChats() {
-        view.markNavActive(view.btnNavChats);
-        // If you later swap in a settings panel, restore the chat panel here.
-    }
-
-    private void onNavSettings() {
-        view.markNavActive(view.btnNavSettings);
-        view.showSettingsPanel();
-        // After dialog closes the nav stays on Settings; clicking Chats restores.
-        view.markNavActive(view.btnNavChats);
-    }
-
-    private void onNavLogout() {
-        int choice = JOptionPane.showConfirmDialog(
-                view,
-                "Are you sure you want to log out?",
-                "Log out",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE);
-
-        if (choice == JOptionPane.YES_OPTION) {
-            view.dispose();
-            // Restart login screen
-            SwingUtilities.invokeLater(() -> {
-                LoginFrame login = new LoginFrame();
-                RegistrationPage registrationPage = new RegistrationPage();
-                new LoginController(login, registrationPage, new NetworkClient("127.0.0.1", 8080));
-                login.setVisible(true);
-            });
-        }
-    }
-
-    // ── send button ───────────────────────────────────────────────────────────
-    private void wireSendButton() {
-        view.btnSend.addActionListener(e -> onSend());
-    }
-
-    /**
-     * Enter sends; Shift+Enter inserts a newline.
-     * We consume the bare Enter event so the textarea does not add a blank line.
-     */
-    private void wireEnterKey() {
-        view.messageInput.addKeyListener(new KeyAdapter() {
-            @Override public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER && !e.isShiftDown()) {
-                    e.consume();
-                    onSend();
+        view.messageInputField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    onSendMessage();
                 }
             }
         });
-    }
 
-    private void onSend() {
-        String text = view.messageInput.getText().trim();
-        if (text.isEmpty()) return;
-
-        String time = LocalTime.now().format(TIME_FMT);
-
-        // Optimistic local render
-        view.addMessage(text, true, time);
-        view.messageInput.setText("");
-        view.messageInput.requestFocusInWindow();
-
-        // TODO: hand off to service layer
-        // chatService.sendMessage(selectedContactId, text);
-
-        // Simulate a reply after 1 s (remove once real service is wired)
-        simulateFakeReply(time);
-    }
-
-    /** Remove this once you have a real server connection. */
-    private void simulateFakeReply(String sentTime) {
-        Timer timer = new Timer(1000, e -> {
-            String replyTime = LocalTime.now().format(TIME_FMT);
-            view.addMessage("Got it! 👍", false, replyTime);
-        });
-        timer.setRepeats(false);
-        timer.start();
-    }
-
-    // ── conversation rows ─────────────────────────────────────────────────────
-    /**
-     * Attach click-listeners to every ConversationRow that is already in the
-     * panel.  Call this again after dynamically adding new rows.
-     */
-    private void wireConversationRows() {
-        for (java.awt.Component c : view.conversationList.getComponents()) {
-            if (c instanceof MainFrame.ConversationRow row) {
-                wireRow(row);
-            }
-        }
-    }
-
-    public void wireRow(MainFrame.ConversationRow row) {
-        row.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) {
-                onConversationSelected(row);
+        view.searchField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    onSearching();
+                }
             }
         });
+
+        // TODO: Here you should also start a background thread (or use an existing listener in NetworkClient)
+        // to constantly listen for incoming messages from the server and call view.addMessage() when one arrives.
     }
 
-    private void onConversationSelected(MainFrame.ConversationRow row) {
-        if (row == view.selectedRow) return;   // already open
+    private void onContactSelected() {
+        currentChatUser = view.contactList.getSelectedValue();
+        if (currentChatUser == null) return;
 
-        view.selectRow(row);
+        view.messageInputField.setEnabled(true);
+        view.sendButton.setEnabled(true);
+
+        view.chatHeaderName.setText("Chat with " + currentChatUser.username);
+        view.chatHeaderDetails.setText(currentChatUser.isOnline ? "online" : currentChatUser.statusText);
+
         view.clearMessages();
 
-        // TODO: load real history from chatService.getHistory(row.contactName)
-        view.addDateDivider("Today");
-        view.addMessage("Hey, how are you?",        false, "09:00");
-        view.addMessage("Doing well, thanks!",       true,  "09:01");
-        view.addMessage("Good to hear 😊",           false, "09:02");
-    }
+        // TODO: Make a network call to fetch message history for this user
+        // SwingWorker<HistoryDto, Void> worker = new SwingWorker<>() { ... }
 
-    // ── new chat button ───────────────────────────────────────────────────────
-    private void wireNewChatButton() {
-        view.btnNewChat.addActionListener(e -> onNewChat());
-    }
-
-    private void onNewChat() {
-        String name = JOptionPane.showInputDialog(
-                view, "Enter username to start a chat:", "New conversation",
-                JOptionPane.PLAIN_MESSAGE);
-        if (name == null || name.isBlank()) return;
-
-        // TODO: validate via userService.findUser(name)
-
-        java.awt.Color color = randomAvatarColor();
-        MainFrame.ConversationRow newRow = view.addConversationRow(
-                name.trim(), "New conversation", "Now", 0, color);
-        wireRow(newRow);
-        onConversationSelected(newRow);
-    }
-
-    // ── attach button ─────────────────────────────────────────────────────────
-    private void wireAttachButton() {
-        view.btnAttach.addActionListener(e -> onAttach());
-    }
-
-    private void onAttach() {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Select a file to send");
-        int result = chooser.showOpenDialog(view);
-        if (result == JFileChooser.APPROVE_OPTION) {
-            String fileName = chooser.getSelectedFile().getName();
-            String time     = LocalTime.now().format(TIME_FMT);
-            view.addMessage("📎 " + fileName, true, time);
-            // TODO: chatService.sendFile(selectedContactId, chooser.getSelectedFile())
+        if (currentChatUser.username.equals("Vincent Porter")) {
+            view.addMessage("Vincent", "Are we meeting today? Project has been already finished and I have results to show you.", "10:12 AM", false);
+            view.addMessage("You", "Well I am not sure. The rest of the team is not here yet. Maybe in an hour or so?", "10:14 AM", true);
+            view.addMessage("Vincent", "Actually everything was fine. I'm very excited to show this to our team.", "10:20 AM", false);
         }
     }
 
-    // ── search field ──────────────────────────────────────────────────────────
-    private void wireSearchField() {
-        view.searchField.getDocument().addDocumentListener(
-                new javax.swing.event.DocumentListener() {
-                    @Override public void insertUpdate (javax.swing.event.DocumentEvent e) { onSearch(); }
-                    @Override public void removeUpdate (javax.swing.event.DocumentEvent e) { onSearch(); }
-                    @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { onSearch(); }
-                });
-    }
+    private void onSendMessage() {
+        String text = view.messageInputField.getText().trim();
+        if (text.isEmpty() || currentChatUser == null) return;
 
-    private void onSearch() {
-        String query = view.searchField.getText().trim().toLowerCase();
-        for (java.awt.Component c : view.conversationList.getComponents()) {
-            if (c instanceof MainFrame.ConversationRow row) {
-                row.setVisible(query.isEmpty()
-                        || row.contactName.toLowerCase().contains(query));
+        // Clear the field
+        view.messageInputField.setText("");
+
+        // Get current time
+        String time = LocalTime.now().format(DateTimeFormatter.ofPattern("hh:mm a"));
+
+        // 1. Instantly display the message on the UI (Optimistic UI update)
+        view.addMessage("You", text, time, true);
+
+        // 2. Send the message to the server in the background
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                // TODO: Implement this in NetworkClient
+                // networkClient.sendMessage(currentChatUser.username, text);
+                System.out.println("Message sent to " + currentChatUser.username + ": " + text);
+                return null;
             }
-        }
-        view.conversationList.revalidate();
-        view.conversationList.repaint();
+
+            @Override
+            protected void done() {
+                try {
+                    get(); // Catch any network errors
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    // Optionally show an error indicator next to the message
+                }
+            }
+        };
+        worker.execute();
     }
 
-    // ── helpers ───────────────────────────────────────────────────────────────
-    private static final java.awt.Color[] AVATAR_COLORS = {
-            new java.awt.Color(0xE8A87C), new java.awt.Color(0x6C8EFF),
-            new java.awt.Color(0xFF7EB3), new java.awt.Color(0x50C8A8),
-            new java.awt.Color(0xA78BFA), new java.awt.Color(0xFBBF24),
-    };
+    private void onSearching() {
+        String text = view.searchField.getText().trim();
+        if (text.isEmpty()) return;
 
-    private int avatarColorIndex = 0;
-    private java.awt.Color randomAvatarColor() {
-        return AVATAR_COLORS[(avatarColorIndex++) % AVATAR_COLORS.length];
+        // Clear the field
+        view.searchField.setText("");
+        view.contactModel.removeAllElements();
+
+        SwingWorker<SearchUserResponseDto, Void> worker = new SwingWorker<>() {
+            @Override
+            protected SearchUserResponseDto doInBackground() throws Exception {
+                return networkClient.sendSearchUserRequest(text);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    SearchUserResponseDto dto = get();
+                    if (dto == null) return;
+                    for (int i = 0; i < dto.foundUsers.size(); i++) {
+                        UserSummaryDto user = dto.foundUsers.get(i);
+                        String statusText = "";
+                        if (user.isOnline) statusText = "online";
+                        else statusText = "offline";
+                        if (!user.username.equals(view.getCurrentUser())) {
+                            view.contactModel.addElement(new ChatFrame.ContactItem(user.username, user.isOnline, statusText));
+                        }
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    // Optionally show an error indicator next to the message
+                }
+            }
+        };
+        worker.execute();
     }
 }

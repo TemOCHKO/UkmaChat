@@ -1,14 +1,17 @@
 package org.temochko.Business;
 
 import org.mindrot.jbcrypt.BCrypt;
-import org.temochko.Business.DTOs.LoginResponseDto;
-import org.temochko.Business.DTOs.RegisterRequestDto;
-import org.temochko.Business.DTOs.RegisterResponseDto;
+import org.temochko.Business.DTOs.Login.LoginResponseDto;
+import org.temochko.Business.DTOs.Register.RegisterRequestDto;
+import org.temochko.Business.DTOs.Register.RegisterResponseDto;
+import org.temochko.Business.DTOs.User.SearchUserRequestDto;
+import org.temochko.Business.DTOs.User.SearchUserResponseDto;
+import org.temochko.Business.DTOs.User.UserSummaryDto;
 import org.temochko.DataAccess.Models.User;
 import org.temochko.DataAccess.Repositories.User.IUserRepository;
-import org.temochko.DataAccess.Repositories.User.UserRepository;
 
-import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -64,4 +67,18 @@ public class AuthService {
     }
 
 
+    public SearchUserResponseDto searchUsers(String query) {
+        try {
+            List<User> dbUsers = userRepository.searchByUsername(query);
+
+            List<UserSummaryDto> safeUsers = new ArrayList<>();
+            for (User u : dbUsers) {
+                safeUsers.add(new UserSummaryDto(u.getId(), u.getUsername(), u.isOnline()));
+            }
+
+            return new SearchUserResponseDto(true, "Users found", safeUsers);
+        } catch (Exception e) {
+            return new SearchUserResponseDto(false, "Search failed", new ArrayList<>());
+        }
+    }
 }

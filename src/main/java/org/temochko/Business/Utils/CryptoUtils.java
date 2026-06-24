@@ -10,21 +10,18 @@ import java.util.Base64;
 
 public class CryptoUtils {
 
-    // Генерація пари ключів RSA (для сервера)
     public static KeyPair generateRSAKeyPair() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(2048);
         return keyGen.generateKeyPair();
     }
 
-    // Генерація симетричного ключа AES (для клієнта)
     public static SecretKey generateAESKey() throws Exception {
         KeyGenerator keyGen = KeyGenerator.getInstance("AES");
         keyGen.init(256);
         return keyGen.generateKey();
     }
 
-    // Створення шифратора AES для SealedObject
     public static Cipher getAESCipher(int cipherMode, SecretKey key) throws Exception {
         Cipher cipher = Cipher.getInstance("AES");
         cipher.init(cipherMode, key);
@@ -37,7 +34,6 @@ public class CryptoUtils {
         return Base64.getEncoder().encodeToString(encryptedBytes);
     }
 
-    // Розшифрувати Base64 рядок назад у звичайний текст
     public static String decryptString(String base64Data, SecretKey key) throws Exception {
         Cipher cipher = Cipher.getInstance("AES");
         cipher.init(Cipher.DECRYPT_MODE, key);

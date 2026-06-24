@@ -106,4 +106,28 @@ public class UserRepository implements IUserRepository {
         if (ts != null) u.setLastSeen(ts.toLocalDateTime());
         return u;
     }
+
+    /**
+     * Пошук користувачів за частковим збігом юзернейму (без урахування регістру).
+     */
+    public List<User> searchByUsername(String query) throws SQLException {
+        // Використовуємо ILIKE для case-insensitive пошуку в PostgreSQL
+        String sql = "SELECT id, username, email, online, last_seen FROM users WHERE username ILIKE ?";
+        List<User> list = new ArrayList<>();
+
+        try (Connection c = db.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+
+            // Додаємо символи % з обох боків для пошуку підрядка
+            // Наприклад, якщо query = "tem", у базу піде "%tem%"
+            ps.setString(1, "%" + query + "%");
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(map(rs)); // Використовуємо твій існуючий метод map()
+                }
+            }
+        }
+        return list;
+    }
 }
