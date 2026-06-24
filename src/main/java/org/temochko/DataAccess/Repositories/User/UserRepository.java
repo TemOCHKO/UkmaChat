@@ -56,7 +56,7 @@ public class UserRepository implements IUserRepository {
         return Optional.empty();
     }
 
-    public User save(String username, String email, String passwordHash) throws SQLException {
+    public User save(String username, String passwordHash, String email) throws SQLException {
         String sql = "INSERT INTO users (username, email, password) VALUES (?,?,?) RETURNING id";
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {

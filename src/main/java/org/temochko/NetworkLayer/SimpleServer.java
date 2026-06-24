@@ -1,4 +1,9 @@
 package org.temochko.NetworkLayer;
+import org.temochko.Business.AuthService;
+import org.temochko.DataAccess.DatabaseManager;
+import org.temochko.DataAccess.Repositories.User.IUserRepository;
+import org.temochko.DataAccess.Repositories.User.UserRepository;
+
 import java.io.*;
 import java.net.*;
 import java.util.concurrent.*;
@@ -6,41 +11,23 @@ import java.util.concurrent.*;
 public class SimpleServer {
     private static final CopyOnWriteArrayList<ObjectOutputStream> clients = new CopyOnWriteArrayList<>();
 
-    public static void main(String[] args) throws IOException {
-        ServerSocket serverSocket = new ServerSocket(8080);
-        System.out.println("MVP Server running on port 8080...");
+    private final AuthService authService;
 
-        while (true) {
-            Socket socket = serverSocket.accept();
-            new Thread(() -> handleClient(socket)).start();
-        }
+    public SimpleServer(AuthService authService) {
+        this.authService = authService;
     }
 
-    private static void handleClient(Socket socket) {
-        try {
-            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-            out.flush();
-            ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+    public void start(int port) {
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            System.out.println("Server started on port " + port);
 
-            clients.add(out);
-
-            while (!socket.isClosed()) {
-                String message = (String) in.readObject();
-                broadcast(message);
+            while (true) {
+                Socket clientSocket = serverSocket.accept();
+                ClientHandler clientHandler = new ClientHandler(clientSocket, authService);
+                clientHandler.start();
             }
         } catch (Exception e) {
-            System.out.println("Client disconnected.");
-        }
-    }
-
-    private static void broadcast(String message) {
-        for (ObjectOutputStream clientOut : clients) {
-            try {
-                clientOut.writeObject(message);
-                clientOut.flush();
-            } catch (IOException e) {
-                clients.remove(clientOut);
-            }
+            e.printStackTrace();
         }
     }
 }

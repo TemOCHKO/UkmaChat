@@ -1,7 +1,11 @@
 package org.temochko.Business.Controllers;
 
+import org.temochko.Business.DTOs.LoginResponseDto;
+import org.temochko.Business.DTOs.RegisterResponseDto;
+import org.temochko.NetworkLayer.NetworkClient;
 import org.temochko.Presentation.LoginFrame;
 import org.temochko.Presentation.MainFrame;
+import org.temochko.Presentation.RegistrationPage;
 
 import javax.swing.*;
 import java.awt.event.*;
@@ -12,19 +16,67 @@ import java.awt.event.*;
 public class LoginController {
 
     private final LoginFrame view;
-    // private final AuthService authService;
+    private final RegistrationPage registrationPage;
+    private final NetworkClient networkClient; // Тепер контролер працює з мережею, а не напряму з БД
 
-    public LoginController(LoginFrame view /*, AuthService authService */) {
+    public LoginController(LoginFrame view, RegistrationPage registrationPage, NetworkClient networkClient) {
         this.view = view;
-        // this.authService = authService;
+        this.registrationPage = registrationPage;
+        this.networkClient = networkClient;
         wireEvents();
+    }
+
+
+    private void onLogin() {
+        registrationPage.dispose();
+        view.setVisible(true);
+        String username = view.usernameField.getText().trim();
+        String password = new String(view.passwordField.getPassword());
+
+        view.setError("");
+
+        if (username.isEmpty()) { view.setError("Please enter your username."); return; }
+        if (password.isEmpty()) { view.setError("Please enter your password.");  return; }
+
+        view.setLoading(true);
+
+        SwingWorker<LoginResponseDto, Void> worker = new SwingWorker<>() {
+            @Override
+            protected LoginResponseDto doInBackground() throws Exception {
+                return networkClient.sendLoginRequest(username, password);
+            }
+
+            @Override
+            protected void done() {
+                view.setLoading(false);
+                try {
+                    LoginResponseDto response = get();
+                    handleAuthResult(response, username);
+                } catch (Exception ex) {
+                    view.setError("Не вдалося з'єднатися з сервером.");
+                    ex.printStackTrace();
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    private void handleAuthResult(LoginResponseDto response, String username) {
+        if (response.success) {
+            view.dispose();
+            registrationPage.dispose();
+            MainFrame main = new MainFrame(username);
+            new MainController(main);
+            main.setVisible(true);
+        } else {
+            view.setError(response.message);
+        }
     }
 
     private void wireEvents() {
         view.loginButton.addActionListener(e -> onLogin());
         view.registerButton.addActionListener(e -> onRegister());
 
-        // Enter key from either field triggers login
         KeyAdapter enterLogin = new KeyAdapter() {
             @Override public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) onLogin();
@@ -36,49 +88,58 @@ public class LoginController {
         view.forgotPasswordLink.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) { onForgotPassword(); }
         });
-    }
 
-    private void onLogin() {
-        String username = view.usernameField.getText().trim();
-        String password = new String(view.passwordField.getPassword());
-
-        view.setError("");
-
-        if (username.isEmpty()) { view.setError("Please enter your username."); return; }
-        if (password.isEmpty()) { view.setError("Please enter your password.");  return; }
-
-        view.setLoading(true);
-
-        // Replace this Timer with a real async auth call:
-        // authService.login(username, password, this::handleAuthResult);
-        new Timer(600, e -> {
-            ((Timer) e.getSource()).stop();
-            handleAuthResult(username, password);
-        }).start();
-    }
-
-    private void handleAuthResult(String username, String password) {
-        view.setLoading(false);
-
-        // Stub: accept anything non-empty — replace with real check
-        boolean success = !username.isEmpty() && !password.isEmpty();
-
-        if (success) {
-            view.dispose();
-            SwingUtilities.invokeLater(() -> {
-                MainFrame main = new MainFrame(username);
-                new MainController(main);
-                main.setVisible(true);
-            });
-        } else {
-            view.setError("Incorrect username or password.");
-        }
+        registrationPage.loginButton.addActionListener(e -> onLogin());
+        registrationPage.registerButton.addActionListener(e -> onRegister());
     }
 
     private void onRegister() {
-        JOptionPane.showMessageDialog(view,
-                "Registration flow — wire to your registration screen here.",
-                "Create account", JOptionPane.INFORMATION_MESSAGE);
+        view.dispose();
+        registrationPage.setVisible(true);
+
+        String username = registrationPage.usernameField.getText().trim();
+        String password = new String(registrationPage.passwordField.getPassword());
+        String confirmPassword = new String(registrationPage.confirmPasswordField.getPassword());
+        String email = new String(registrationPage.emailField.getText());
+
+        registrationPage.setError("");
+
+        if (username.isEmpty()) {
+            registrationPage.setError("Please enter your username.");
+            return;
+        }
+        if (password.isEmpty()) { registrationPage.setError("Please enter your password.");  return; }
+        if (confirmPassword.isEmpty()) { registrationPage.setError("Please enter your confirmed password.");  return; }
+        if (email.isEmpty()) { registrationPage.setError("Please enter your email.");  return; }
+
+        if (!password.equals(confirmPassword)) {
+            registrationPage.setError("Passwords do not match.");
+            return;
+        }
+
+        registrationPage.setLoading(true);
+
+        SwingWorker<RegisterResponseDto, Void> worker = new SwingWorker<>() {
+            @Override
+            protected RegisterResponseDto doInBackground() throws Exception {
+                return networkClient.sendRegisterRequest(username, password, email);
+            }
+
+            @Override
+            protected void done() {
+                view.setLoading(false);
+                try {
+                    RegisterResponseDto response = get();
+                    handleAuthResult(new LoginResponseDto(response.success, response.message, response.sessionToken), username);
+                } catch (Exception ex) {
+                    view.setError("Couldnt connect to server.");
+                    ex.printStackTrace();
+                }
+            }
+        };
+        worker.execute();
+
+
     }
 
     private void onForgotPassword() {

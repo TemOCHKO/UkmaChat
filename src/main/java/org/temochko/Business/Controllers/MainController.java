@@ -1,7 +1,9 @@
 package org.temochko.Business.Controllers;
 
+import org.temochko.NetworkLayer.NetworkClient;
 import org.temochko.Presentation.LoginFrame;
 import org.temochko.Presentation.MainFrame;
+import org.temochko.Presentation.RegistrationPage;
 
 import javax.swing.*;
 import java.awt.event.*;
@@ -77,7 +79,8 @@ public class MainController {
             // Restart login screen
             SwingUtilities.invokeLater(() -> {
                 LoginFrame login = new LoginFrame();
-                new LoginController(login);
+                RegistrationPage registrationPage = new RegistrationPage();
+                new LoginController(login, registrationPage, new NetworkClient("127.0.0.1", 8080));
                 login.setVisible(true);
             });
         }
