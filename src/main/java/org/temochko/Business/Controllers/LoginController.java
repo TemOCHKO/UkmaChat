@@ -58,7 +58,7 @@ public class LoginController {
         worker.execute();
     }
 
-    private void handleAuthResult(LoginResponseDto response, String username) {
+    private void handleAuthResult(LoginResponseDto response, String username) throws Exception {
         if (response.success) {
             view.dispose();
             registrationPage.dispose();
@@ -66,6 +66,7 @@ public class LoginController {
             ChatFrame chatFrame = new ChatFrame(username);
             new MainController(chatFrame, networkClient);
             chatFrame.setVisible(true);
+            networkClient.sendSetOnlineRequest(username, true);
         } else {
             view.setError(response.message);
         }

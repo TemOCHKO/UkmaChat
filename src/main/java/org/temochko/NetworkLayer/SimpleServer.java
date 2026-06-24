@@ -6,6 +6,7 @@ import org.temochko.DataAccess.Repositories.User.UserRepository;
 
 import java.io.*;
 import java.net.*;
+import java.util.List;
 import java.util.concurrent.*;
 
 public class SimpleServer {
@@ -13,21 +14,45 @@ public class SimpleServer {
 
     private final AuthService authService;
 
+    private static final List<ClientHandler> activeClients = new CopyOnWriteArrayList<>();
     public SimpleServer(AuthService authService) {
         this.authService = authService;
     }
 
     public void start(int port) {
+        startHeartbeatMonitor();
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server started on port " + port);
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 ClientHandler clientHandler = new ClientHandler(clientSocket, authService);
+                activeClients.add(clientHandler);
                 clientHandler.start();
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static void removeClient(ClientHandler handler) {
+        activeClients.remove(handler);
+    }
+
+    private void startHeartbeatMonitor() {
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
+        // every 30 secs
+        scheduler.scheduleAtFixedRate(() -> {
+            long now = System.currentTimeMillis();
+            long timeoutLimit = 45000;
+
+            for (ClientHandler client : activeClients) {
+                if (now - client.getLastActivityTime() > timeoutLimit) {
+                    client.forceDisconnect();
+                    activeClients.remove(client);
+                }
+            }
+        }, 30, 30, TimeUnit.SECONDS);
     }
 }

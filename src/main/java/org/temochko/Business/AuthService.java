@@ -10,6 +10,7 @@ import org.temochko.Business.DTOs.User.UserSummaryDto;
 import org.temochko.DataAccess.Models.User;
 import org.temochko.DataAccess.Repositories.User.IUserRepository;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -79,6 +80,14 @@ public class AuthService {
             return new SearchUserResponseDto(true, "Users found", safeUsers);
         } catch (Exception e) {
             return new SearchUserResponseDto(false, "Search failed", new ArrayList<>());
+        }
+    }
+
+    public void setOnline(String username, boolean online) {
+        try {
+            userRepository.setOnline(username, online);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
     }
 }

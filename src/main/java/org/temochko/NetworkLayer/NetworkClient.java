@@ -6,10 +6,12 @@ import org.temochko.Business.DTOs.KeyExchanges.EncryptedAesKeyExchange;
 import org.temochko.Business.DTOs.KeyExchanges.RsaPublicKeyExchange;
 import org.temochko.Business.DTOs.Login.LoginRequestDto;
 import org.temochko.Business.DTOs.Login.LoginResponseDto;
+import org.temochko.Business.DTOs.PingDto;
 import org.temochko.Business.DTOs.Register.RegisterRequestDto;
 import org.temochko.Business.DTOs.Register.RegisterResponseDto;
 import org.temochko.Business.DTOs.User.SearchUserRequestDto;
 import org.temochko.Business.DTOs.User.SearchUserResponseDto;
+import org.temochko.Business.DTOs.User.UserSetOnlineRequestDto;
 import org.temochko.Business.Utils.CryptoUtils;
 
 import javax.crypto.Cipher;
@@ -18,6 +20,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.security.PublicKey;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 // Client side of network, works with server
@@ -29,6 +35,7 @@ public class NetworkClient {
     private ObjectOutputStream out;
     private ObjectInputStream in;
     private SecretKey aesSessionKey;
+    private ScheduledExecutorService heartbeatScheduler;
 
     public NetworkClient(String serverAddress, int serverPort) {
         this.serverAddress = serverAddress;
@@ -60,6 +67,7 @@ public class NetworkClient {
         out.writeObject(new EncryptedAesKeyExchange(encryptedAesKey));
         out.flush();
 
+        startHeartbeat();
     }
 
     public LoginResponseDto sendLoginRequest(String username, String rawPassword) throws Exception {
@@ -89,6 +97,29 @@ public class NetworkClient {
         out.flush();
 
         return (SearchUserResponseDto) in.readObject();
+    }
+
+    public void sendSetOnlineRequest(String username, boolean online) throws Exception {
+        out.writeObject(new UserSetOnlineRequestDto(username, online));
+        out.flush();
+
+    }
+
+    private void startHeartbeat() {
+        heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
+        // every 15 secs
+        heartbeatScheduler.scheduleAtFixedRate(() -> {
+            try {
+                if (out != null) {
+                    out.writeObject(new PingDto());
+                    out.flush();
+                }
+            } catch (Exception e) {
+                System.err.println("heartbeat failed");
+                disconnect();
+                System.exit(0);
+            }
+        }, 15, 15, TimeUnit.SECONDS);
     }
 
     public void disconnect() {

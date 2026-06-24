@@ -9,9 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repository layer — all SQL for users lives here.
- */
+
 public class UserRepository implements IUserRepository {
     private final DatabaseManager db;
 
@@ -43,7 +41,6 @@ public class UserRepository implements IUserRepository {
         return Optional.empty();
     }
 
-    /** Returns the hashed password stored for a username (for auth). */
     public Optional<String> findPasswordHash(String username) throws SQLException {
         String sql = "SELECT password FROM users WHERE username = ?";
         try (Connection c = db.getConnection();
@@ -83,6 +80,17 @@ public class UserRepository implements IUserRepository {
         }
     }
 
+    public void setOnline(String username, boolean online) throws SQLException {
+        String sql = "UPDATE users SET online = ?, last_seen = ? WHERE username = ?";
+        try (Connection c = db.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setBoolean(1, online);
+            ps.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+            ps.setString(3, username);
+            ps.executeUpdate();
+        }
+    }
+
     public List<User> findAllExcept(int excludeId) throws SQLException {
         String sql = "SELECT id, username, email, online, last_seen FROM users WHERE id <> ?";
         List<User> list = new ArrayList<>();
@@ -107,24 +115,18 @@ public class UserRepository implements IUserRepository {
         return u;
     }
 
-    /**
-     * Пошук користувачів за частковим збігом юзернейму (без урахування регістру).
-     */
     public List<User> searchByUsername(String query) throws SQLException {
-        // Використовуємо ILIKE для case-insensitive пошуку в PostgreSQL
         String sql = "SELECT id, username, email, online, last_seen FROM users WHERE username ILIKE ?";
         List<User> list = new ArrayList<>();
 
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
 
-            // Додаємо символи % з обох боків для пошуку підрядка
-            // Наприклад, якщо query = "tem", у базу піде "%tem%"
             ps.setString(1, "%" + query + "%");
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    list.add(map(rs)); // Використовуємо твій існуючий метод map()
+                    list.add(map(rs));
                 }
             }
         }

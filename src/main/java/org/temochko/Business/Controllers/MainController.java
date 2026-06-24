@@ -97,10 +97,10 @@ public class MainController {
         // Clear the field
         view.messageInputField.setText("");
 
-        // Get current time
+
         String time = LocalTime.now().format(DateTimeFormatter.ofPattern("hh:mm a"));
 
-        // 1. Instantly display the message on the UI (Optimistic UI update)
+        // Instantly display the message on the UI
         view.addMessage("You", text, time, true);
 
         // 2. Send the message to the server in the background
@@ -154,9 +154,10 @@ public class MainController {
                             view.contactModel.addElement(new ChatFrame.ContactItem(user.username, user.isOnline, statusText));
                         }
                     }
+                    view.contactList.revalidate();
+                    view.contactList.repaint();
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                    // Optionally show an error indicator next to the message
                 }
             }
         };
