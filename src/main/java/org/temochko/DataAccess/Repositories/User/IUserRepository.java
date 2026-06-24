@@ -15,4 +15,5 @@ public interface IUserRepository {
     void setOnline(String username, boolean online) throws SQLException;
     List<User> findAllExcept(int excludeId) throws SQLException;
     List<User> searchByUsername(String query) throws SQLException;
+    boolean isUserOnline(String username) throws SQLException;
 }

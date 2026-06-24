@@ -2,6 +2,9 @@ package org.temochko.Business.Controllers;
 
 import org.temochko.Business.DTOs.Login.LoginResponseDto;
 import org.temochko.Business.DTOs.Register.RegisterResponseDto;
+import org.temochko.Business.Validators.LoginValidator;
+import org.temochko.Business.Validators.RegisterValidator;
+import org.temochko.Business.Validators.ValidationResult;
 import org.temochko.NetworkLayer.ClientSide.NetworkClient;
 import org.temochko.Presentation.ChatFrame;
 import org.temochko.Presentation.LoginFrame;
@@ -23,18 +26,19 @@ public class LoginController {
         wireEvents();
     }
 
-
     private void onLogin() {
         registrationPage.dispose();
         view.setVisible(true);
         String username = view.usernameField.getText().trim();
         String password = new String(view.passwordField.getPassword());
 
+        ValidationResult result = LoginValidator.validate(username, password);
+
+        if (!result.isValid) {
+            registrationPage.setError("Validation Error " + result.errorMessage);  return;
+        }
+
         view.setError("");
-
-        if (username.isEmpty()) { view.setError("Please enter your username."); return; }
-        if (password.isEmpty()) { view.setError("Please enter your password.");  return; }
-
         view.setLoading(true);
 
         SwingWorker<LoginResponseDto, Void> worker = new SwingWorker<>() {
@@ -98,19 +102,10 @@ public class LoginController {
         String confirmPassword = new String(registrationPage.confirmPasswordField.getPassword());
         String email = new String(registrationPage.emailField.getText());
 
-        registrationPage.setError("");
+        ValidationResult result = RegisterValidator.validate(username, email, password, confirmPassword);
 
-        if (username.isEmpty()) {
-            registrationPage.setError("Please enter your username.");
-            return;
-        }
-        if (password.isEmpty()) { registrationPage.setError("Please enter your password.");  return; }
-        if (confirmPassword.isEmpty()) { registrationPage.setError("Please enter your confirmed password.");  return; }
-        if (email.isEmpty()) { registrationPage.setError("Please enter your email.");  return; }
-
-        if (!password.equals(confirmPassword)) {
-            registrationPage.setError("Passwords do not match.");
-            return;
+        if (!result.isValid) {
+            registrationPage.setError("Validation Error " + result.errorMessage);  return;
         }
 
         registrationPage.setLoading(true);

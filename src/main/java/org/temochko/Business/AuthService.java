@@ -29,6 +29,10 @@ public class AuthService {
         try {
             Optional<String> storedHashOpt = userRepository.findPasswordHash(username);
             if (storedHashOpt.isPresent()) {
+                if (userRepository.isUserOnline(username)) {
+                    return new LoginResponseDto(false, "User already is logged in", UUID.randomUUID().toString());
+                }
+
                 String storedHash = storedHashOpt.get();
 
                 // compare
