@@ -1,4 +1,4 @@
-package org.temochko.NetworkLayer;
+package org.temochko.NetworkLayer.ServerSide;
 
 import java.io.*;
 import java.net.Socket;
@@ -9,6 +9,7 @@ import org.temochko.Business.DTOs.KeyExchanges.EncryptedAesKeyExchange;
 import org.temochko.Business.DTOs.KeyExchanges.RsaPublicKeyExchange;
 import org.temochko.Business.DTOs.Login.LoginRequestDto;
 import org.temochko.Business.DTOs.Login.LoginResponseDto;
+import org.temochko.Business.DTOs.Message.ChatMessage;
 import org.temochko.Business.DTOs.PingDto;
 import org.temochko.Business.DTOs.Register.RegisterRequestDto;
 import org.temochko.Business.DTOs.Register.RegisterResponseDto;
@@ -29,6 +30,9 @@ public class ClientHandler extends Thread{
 
     private volatile long lastActivityTime;
     private String loggedInUsername = null;
+
+    ObjectInputStream in;
+    ObjectOutputStream out;
     public ClientHandler(Socket socket, AuthService authService) {
         this.socket = socket;
         this.authService = authService;
@@ -51,10 +55,11 @@ public class ClientHandler extends Thread{
     }
 
     private void handleClientSocket() throws IOException {
-        try (ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())) {
+        try {
+            out = new ObjectOutputStream(socket.getOutputStream());
             out.flush();
-            try (ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
-
+            try {
+                in = new ObjectInputStream(socket.getInputStream());
                 // handshake
                 KeyPair rsaKeys = CryptoUtils.generateRSAKeyPair();
                 out.writeObject(new RsaPublicKeyExchange(rsaKeys.getPublic()));
@@ -67,10 +72,9 @@ public class ClientHandler extends Thread{
                 byte[] decryptedAesBytes = rsaCipher.doFinal(aesExchange.encryptedAesKey);
                 SecretKey aesSessionKey = new SecretKeySpec(decryptedAesBytes, "AES");
 
-                System.out.println("Сервер: Handshake з клієнтом завершено.");
-
                 // handling packets
                 while (true) {
+                    if (in == null) { return; }
                     Object request = in.readObject();
 
                     // ping
@@ -111,11 +115,24 @@ public class ClientHandler extends Thread{
 
                         // update online status
                         authService.setOnline(((UserSetOnlineRequestDto) request).username, ((UserSetOnlineRequestDto) request).online);
+                    } else if (request instanceof ChatMessage) {
+                        ChatMessage chatMsg = (ChatMessage) request;
+
+                        // messageRepository.save(chatMsg.senderUsername, chatMsg.targetUsername, chatMsg.text);
+
+                        ClientHandler recipient = SimpleServer.getClientByUsername(chatMsg.username);
+
+                        if (recipient != null) {
+                            recipient.sendMessageToClient(chatMsg);
+                        }
                     }
                 }
             }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
         } catch (EOFException | java.net.SocketException e) {
-            System.out.println("Client " + (loggedInUsername != null ? loggedInUsername : "anonymous ") + " disconnected.");
+            e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -128,5 +145,16 @@ public class ClientHandler extends Thread{
             try { if (socket != null) socket.close(); } catch (Exception ex) {}
         }
 
+    }
+
+    public void sendMessageToClient(Object dto) {
+        try {
+            synchronized (out) {
+                out.writeObject(dto);
+                out.flush();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

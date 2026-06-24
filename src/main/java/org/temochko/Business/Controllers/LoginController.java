@@ -2,7 +2,7 @@ package org.temochko.Business.Controllers;
 
 import org.temochko.Business.DTOs.Login.LoginResponseDto;
 import org.temochko.Business.DTOs.Register.RegisterResponseDto;
-import org.temochko.NetworkLayer.NetworkClient;
+import org.temochko.NetworkLayer.ClientSide.NetworkClient;
 import org.temochko.Presentation.ChatFrame;
 import org.temochko.Presentation.LoginFrame;
 import org.temochko.Presentation.RegistrationPage;
@@ -50,7 +50,7 @@ public class LoginController {
                     LoginResponseDto response = get();
                     handleAuthResult(response, username);
                 } catch (Exception ex) {
-                    view.setError("Не вдалося з'єднатися з сервером.");
+                    view.setError("Couldnt connect to the server.");
                     ex.printStackTrace();
                 }
             }
@@ -84,9 +84,6 @@ public class LoginController {
         view.usernameField.addKeyListener(enterLogin);
         view.passwordField.addKeyListener(enterLogin);
 
-        view.forgotPasswordLink.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) { onForgotPassword(); }
-        });
 
         registrationPage.loginButton.addActionListener(e -> onLogin());
         registrationPage.registerButton.addActionListener(e -> onRegister());
@@ -139,11 +136,5 @@ public class LoginController {
         worker.execute();
 
 
-    }
-
-    private void onForgotPassword() {
-        JOptionPane.showMessageDialog(view,
-                "Password reset flow — wire to your reset screen here.",
-                "Forgot password", JOptionPane.INFORMATION_MESSAGE);
     }
 }

@@ -35,9 +35,7 @@ public class LoginFrame extends JFrame {
     public JPasswordField passwordField;
     public JButton        loginButton;
     public JButton        registerButton;
-    JCheckBox      rememberMeBox;
     JLabel         errorLabel;
-    public JLabel         forgotPasswordLink;
 
     public LoginFrame() {
         setTitle("UkmaChat — Sign in");
@@ -165,19 +163,6 @@ public class LoginFrame extends JFrame {
         rememberRow.setOpaque(false);
         rememberRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
 
-        rememberMeBox = new JCheckBox("Remember me");
-        rememberMeBox.setFont(FONT_LINK);
-        rememberMeBox.setForeground(TEXT_MUTED);
-        rememberMeBox.setOpaque(false);
-        rememberMeBox.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-        forgotPasswordLink = new JLabel("Forgot password?");
-        forgotPasswordLink.setFont(FONT_LINK);
-        forgotPasswordLink.setForeground(ACCENT_BLUE);
-        forgotPasswordLink.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-        rememberRow.add(rememberMeBox,      BorderLayout.WEST);
-        rememberRow.add(forgotPasswordLink, BorderLayout.EAST);
 
         // primary button
         loginButton = new JButton("Sign in") {

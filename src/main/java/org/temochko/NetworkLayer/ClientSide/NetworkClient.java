@@ -1,11 +1,10 @@
-package org.temochko.NetworkLayer;
-
-
+package org.temochko.NetworkLayer.ClientSide;
 
 import org.temochko.Business.DTOs.KeyExchanges.EncryptedAesKeyExchange;
 import org.temochko.Business.DTOs.KeyExchanges.RsaPublicKeyExchange;
 import org.temochko.Business.DTOs.Login.LoginRequestDto;
 import org.temochko.Business.DTOs.Login.LoginResponseDto;
+import org.temochko.Business.DTOs.Message.ChatMessage;
 import org.temochko.Business.DTOs.PingDto;
 import org.temochko.Business.DTOs.Register.RegisterRequestDto;
 import org.temochko.Business.DTOs.Register.RegisterResponseDto;
@@ -16,6 +15,7 @@ import org.temochko.Business.Utils.CryptoUtils;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
@@ -24,7 +24,7 @@ import java.security.PublicKey;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
+import java.util.function.Consumer;
 
 // Client side of network, works with server
 public class NetworkClient {
@@ -37,9 +37,17 @@ public class NetworkClient {
     private SecretKey aesSessionKey;
     private ScheduledExecutorService heartbeatScheduler;
 
+    private Thread listenerThread;
+    private Consumer<ChatMessage> onMessageReceived;
+    private Consumer<SearchUserResponseDto> onSearchResponseReceived;
+
     public NetworkClient(String serverAddress, int serverPort) {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
+    }
+
+    public void setOnSearchResponseReceived(Consumer<SearchUserResponseDto> callback) {
+        this.onSearchResponseReceived = callback;
     }
 
 
@@ -92,11 +100,10 @@ public class NetworkClient {
         return (RegisterResponseDto) in.readObject();
     }
 
-    public SearchUserResponseDto sendSearchUserRequest(String username) throws Exception {
+    public void sendSearchUserRequest(String username) throws Exception {
         out.writeObject(new SearchUserRequestDto(username));
         out.flush();
 
-        return (SearchUserResponseDto) in.readObject();
     }
 
     public void sendSetOnlineRequest(String username, boolean online) throws Exception {
@@ -130,5 +137,40 @@ public class NetworkClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void sendMessage(ChatMessage chatMessage) throws IOException {
+        out.writeObject(chatMessage);
+        out.flush();
+    }
+
+    public void setOnMessageReceived(Consumer<ChatMessage> callback) {
+        this.onMessageReceived = callback;
+    }
+
+    // after successfully logged in
+    public void startListening() {
+        listenerThread = new Thread(() -> {
+            try {
+                while (!socket.isClosed()) {
+                    Object incoming = in.readObject();
+
+                    if (incoming instanceof ChatMessage) {
+                        ChatMessage msg = (ChatMessage) incoming;
+                        if (onMessageReceived != null) {
+                            onMessageReceived.accept(msg);
+                        }
+                    }
+                    else if (incoming instanceof SearchUserResponseDto) {
+                        SearchUserResponseDto response = (SearchUserResponseDto) incoming;
+                        if (onSearchResponseReceived != null) {
+                            onSearchResponseReceived.accept(response);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+            }
+        });
+        listenerThread.start();
     }
 }

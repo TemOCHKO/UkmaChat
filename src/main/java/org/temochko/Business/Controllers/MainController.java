@@ -1,15 +1,19 @@
 package org.temochko.Business.Controllers;
 
-import org.temochko.Business.DTOs.User.SearchUserResponseDto;
+import org.temochko.Business.DTOs.Message.ChatMessage;
 import org.temochko.Business.DTOs.User.UserSummaryDto;
 import org.temochko.Presentation.ChatFrame;
-import org.temochko.NetworkLayer.NetworkClient;
+import org.temochko.NetworkLayer.ClientSide.NetworkClient;
 
 import javax.swing.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class MainController {
 
@@ -17,21 +21,19 @@ public class MainController {
     private final NetworkClient networkClient;
     private ChatFrame.ContactItem currentChatUser;
 
+    private final Map<String, List<ChatMessage>> localMessageCache = new HashMap<>();
+
     public MainController(ChatFrame view, NetworkClient networkClient) {
         this.view = view;
         this.networkClient = networkClient;
 
         initView();
+        initNetwork();
         wireEvents();
     }
 
     private void initView() {
         // TODO: Replace with an actual call to fetch friends/contacts from DB
-        view.contactModel.addElement(new ChatFrame.ContactItem("Vincent Porter", true, "online"));
-        view.contactModel.addElement(new ChatFrame.ContactItem("Aiden Chavez", false, "left 7 min ago"));
-        view.contactModel.addElement(new ChatFrame.ContactItem("Mike Thomas", true, "online"));
-        view.contactModel.addElement(new ChatFrame.ContactItem("Erika Hughes", true, "online"));
-        view.contactModel.addElement(new ChatFrame.ContactItem("Monica Ward", true, "online"));
 
         view.messageInputField.setEnabled(false);
         view.sendButton.setEnabled(false);
@@ -63,30 +65,24 @@ public class MainController {
                 }
             }
         });
-
-        // TODO: Here you should also start a background thread (or use an existing listener in NetworkClient)
-        // to constantly listen for incoming messages from the server and call view.addMessage() when one arrives.
     }
 
     private void onContactSelected() {
-        currentChatUser = view.contactList.getSelectedValue();
-        if (currentChatUser == null) return;
+        ChatFrame.ContactItem selected = view.contactList.getSelectedValue();
+        if (selected == null) return;
+
+        currentChatUser = selected;
 
         view.messageInputField.setEnabled(true);
         view.sendButton.setEnabled(true);
-
         view.chatHeaderName.setText("Chat with " + currentChatUser.username);
-        view.chatHeaderDetails.setText(currentChatUser.isOnline ? "online" : currentChatUser.statusText);
-
+        view.chatHeaderDetails.setText(currentChatUser.isOnline ? "online" : "offline");
         view.clearMessages();
 
-        // TODO: Make a network call to fetch message history for this user
-        // SwingWorker<HistoryDto, Void> worker = new SwingWorker<>() { ... }
-
-        if (currentChatUser.username.equals("Vincent Porter")) {
-            view.addMessage("Vincent", "Are we meeting today? Project has been already finished and I have results to show you.", "10:12 AM", false);
-            view.addMessage("You", "Well I am not sure. The rest of the team is not here yet. Maybe in an hour or so?", "10:14 AM", true);
-            view.addMessage("Vincent", "Actually everything was fine. I'm very excited to show this to our team.", "10:20 AM", false);
+        List<ChatMessage> history = localMessageCache.getOrDefault(currentChatUser.username, new ArrayList<>());
+        for (ChatMessage msg : history) {
+            boolean isMine = msg.from.equals(view.getCurrentUser());
+            view.addMessage(isMine ? "You" : msg.from, msg.message, msg.timestamp, isMine);
         }
     }
 
@@ -94,33 +90,19 @@ public class MainController {
         String text = view.messageInputField.getText().trim();
         if (text.isEmpty() || currentChatUser == null) return;
 
-        // Clear the field
         view.messageInputField.setText("");
+        String formattedTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
+        view.addMessage("You", text, formattedTime, true);
+        ChatMessage msg = new ChatMessage(currentChatUser.username, view.getCurrentUser(), text, formattedTime);
 
+        localMessageCache.putIfAbsent(currentChatUser.username, new ArrayList<>());
+        localMessageCache.get(currentChatUser.username).add(msg);
 
-        String time = LocalTime.now().format(DateTimeFormatter.ofPattern("hh:mm a"));
-
-        // Instantly display the message on the UI
-        view.addMessage("You", text, time, true);
-
-        // 2. Send the message to the server in the background
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() throws Exception {
-                // TODO: Implement this in NetworkClient
-                // networkClient.sendMessage(currentChatUser.username, text);
-                System.out.println("Message sent to " + currentChatUser.username + ": " + text);
+                networkClient.sendMessage(msg);
                 return null;
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    get(); // Catch any network errors
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    // Optionally show an error indicator next to the message
-                }
             }
         };
         worker.execute();
@@ -134,33 +116,90 @@ public class MainController {
         view.searchField.setText("");
         view.contactModel.removeAllElements();
 
-        SwingWorker<SearchUserResponseDto, Void> worker = new SwingWorker<>() {
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
-            protected SearchUserResponseDto doInBackground() throws Exception {
-                return networkClient.sendSearchUserRequest(text);
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    SearchUserResponseDto dto = get();
-                    if (dto == null) return;
-                    for (int i = 0; i < dto.foundUsers.size(); i++) {
-                        UserSummaryDto user = dto.foundUsers.get(i);
-                        String statusText = "";
-                        if (user.isOnline) statusText = "online";
-                        else statusText = "offline";
-                        if (!user.username.equals(view.getCurrentUser())) {
-                            view.contactModel.addElement(new ChatFrame.ContactItem(user.username, user.isOnline, statusText));
-                        }
-                    }
-                    view.contactList.revalidate();
-                    view.contactList.repaint();
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
+            protected Void doInBackground() throws Exception {
+                networkClient.sendSearchUserRequest(text);
+                return null;
             }
         };
         worker.execute();
     }
+
+
+    private void initNetwork() {
+        networkClient.setOnSearchResponseReceived(dto -> {
+            SwingUtilities.invokeLater(() -> {
+                if (dto == null) return;
+                view.contactModel.removeAllElements();
+
+                for (int i = 0; i < dto.foundUsers.size(); i++) {
+                    UserSummaryDto user = dto.foundUsers.get(i);
+
+                    String statusText = user.isOnline ? "online" : "offline";
+
+                    if (!user.username.equals(view.getCurrentUser())) {
+                        view.contactModel.addElement(new ChatFrame.ContactItem(user.username, user.isOnline, statusText));
+                    }
+                }
+
+                // update ui
+                view.contactList.revalidate();
+                view.contactList.repaint();
+            });
+        });
+
+        networkClient.setOnMessageReceived(msg -> {
+            SwingUtilities.invokeLater(() -> {
+
+                localMessageCache.putIfAbsent(msg.from, new ArrayList<>());
+                localMessageCache.get(msg.from).add(msg);
+
+                if (currentChatUser != null && currentChatUser.username.equals(msg.from)) {
+                    view.addMessage(msg.from, msg.message, msg.timestamp, false);
+
+                    // find the sender and get him to the top of the stack
+                    view.contactModel.removeElement(currentChatUser);
+                    view.contactModel.add(0, currentChatUser);
+                    view.contactList.repaint();
+                } else {
+                    // chat with sender is not open
+                    updateSidebarWithUnreadNotification(msg.from);
+                }
+            });
+        });
+
+        networkClient.startListening();
+    }
+
+    private void updateSidebarWithUnreadNotification(String senderUsername) {
+        boolean userFound = false;
+        ChatFrame.ContactItem targetItem = null;
+
+        // search in out left sidebar
+        for (int i = 0; i < view.contactModel.size(); i++) {
+            ChatFrame.ContactItem item = view.contactModel.get(i);
+            if (item.username.equals(senderUsername)) {
+                targetItem = item;
+                targetItem.statusText = "new message";
+                userFound = true;
+
+                view.contactModel.remove(i);
+                break;
+            }
+        }
+
+        // if he is not on the left, we create him
+        if (!userFound) {
+            targetItem = new ChatFrame.ContactItem(senderUsername, true, "new message");
+        }
+
+        // add to the top of the "stack"
+        view.contactModel.add(0, targetItem);
+
+        // update ui
+        view.contactList.revalidate();
+        view.contactList.repaint();
+    }
+
 }

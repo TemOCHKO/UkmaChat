@@ -1,10 +1,9 @@
 package org.temochko.Presentation;
 
-
 import org.temochko.DataAccess.DatabaseManager;
 import org.temochko.DataAccess.Repositories.User.UserRepository;
 import org.temochko.Business.AuthService;
-import org.temochko.NetworkLayer.SimpleServer;
+import org.temochko.NetworkLayer.ServerSide.SimpleServer;
 
 public class ServerMain {
     public static void main(String[] args) {

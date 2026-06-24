@@ -8,11 +8,7 @@ import java.awt.event.AdjustmentListener;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.RoundRectangle2D;
 
-/**
- * MainFrame — The primary chat interface.
- * Left: Dark sidebar with search and contacts.
- * Right: Chat area with header, message history, and input.
- */
+
 public class ChatFrame extends JFrame {
 
     // ── Palette ───────────────────────────────────────────────────────────────
@@ -64,7 +60,7 @@ public class ChatFrame extends JFrame {
         // Search Bar Area
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 20));
         searchPanel.setBackground(SIDEBAR_BG);
-        searchField = new JTextField("search");
+        searchField = new JTextField("");
         searchField.setPreferredSize(new Dimension(260, 40));
         searchField.setBackground(SEARCH_BG);
         searchField.setForeground(TEXT_LIGHT);
@@ -161,29 +157,37 @@ public class ChatFrame extends JFrame {
     }
 
     // ── Public UI Methods for Controller ──────────────────────────────────────
-
     public void addMessage(String senderName, String text, String time, boolean isMine) {
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setOpaque(false);
-        wrapper.setBorder(new EmptyBorder(5, 0, 15, 0));
-
-        // Time and sender label
-        JLabel metaLabel = new JLabel((isMine ? time : senderName + " " + time));
+        JLabel metaLabel = new JLabel(isMine ? time : senderName + "  " + time);
         metaLabel.setFont(new Font("Inter", Font.BOLD, 11));
         metaLabel.setForeground(TEXT_MUTED);
-        metaLabel.setHorizontalAlignment(isMine ? SwingConstants.RIGHT : SwingConstants.LEFT);
 
-        // Bubble
         ChatBubble bubble = new ChatBubble(text, isMine);
 
-        wrapper.add(metaLabel, BorderLayout.NORTH);
-        wrapper.add(bubble, isMine ? BorderLayout.EAST : BorderLayout.WEST);
+        // inner: stacks meta + bubble, sized to content
+        JPanel inner = new JPanel();
+        inner.setLayout(new BoxLayout(inner, BoxLayout.Y_AXIS));
+        inner.setOpaque(false);
+        metaLabel.setAlignmentX(isMine ? Component.RIGHT_ALIGNMENT : Component.LEFT_ALIGNMENT);
+        bubble.setAlignmentX(isMine ? Component.RIGHT_ALIGNMENT : Component.LEFT_ALIGNMENT);
+        inner.add(metaLabel);
+        inner.add(Box.createVerticalStrut(3));
+        inner.add(bubble);
 
-        messagePanel.add(wrapper);
+        // outer: full-width row, pins inner to left or right via BorderLayout
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setOpaque(false);
+        outer.setBorder(new EmptyBorder(5, 0, 15, 0));
+        outer.add(inner, isMine ? BorderLayout.EAST : BorderLayout.WEST);
+
+        // must validate before reading preferred size, otherwise height = 0
+        outer.validate();
+        outer.setMaximumSize(new Dimension(Integer.MAX_VALUE, outer.getPreferredSize().height));
+
+        messagePanel.add(outer);
         messagePanel.revalidate();
         messagePanel.repaint();
 
-        // Scroll to bottom
         SwingUtilities.invokeLater(() -> {
             JScrollBar vertical = messageScrollPane.getVerticalScrollBar();
             vertical.setValue(vertical.getMaximum());
@@ -215,7 +219,6 @@ public class ChatFrame extends JFrame {
         }
     }
 
-    /** Custom renderer for the Sidebar list (Draws the initials avatar & status) */
     private class ContactListRenderer extends JPanel implements ListCellRenderer<ContactItem> {
         private JLabel avatarLabel;
         private JLabel nameLabel;
@@ -279,6 +282,8 @@ public class ChatFrame extends JFrame {
 
         @Override
         public Component getListCellRendererComponent(JList<? extends ContactItem> list, ContactItem value, int index, boolean isSelected, boolean cellHasFocus) {
+            if (value == null) return this;
+
             avatarLabel.setText(value.username);
             nameLabel.setText(value.username);
             statusLabel.setText(value.statusText);

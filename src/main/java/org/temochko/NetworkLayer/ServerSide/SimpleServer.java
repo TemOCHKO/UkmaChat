@@ -1,8 +1,5 @@
-package org.temochko.NetworkLayer;
+package org.temochko.NetworkLayer.ServerSide;
 import org.temochko.Business.AuthService;
-import org.temochko.DataAccess.DatabaseManager;
-import org.temochko.DataAccess.Repositories.User.IUserRepository;
-import org.temochko.DataAccess.Repositories.User.UserRepository;
 
 import java.io.*;
 import java.net.*;
@@ -35,6 +32,12 @@ public class SimpleServer {
         }
     }
 
+    public static ClientHandler getClientByUsername(String username) {
+        for (ClientHandler client : activeClients)
+            if (username.equals(client.getUsername())) return client;
+        return null;
+    }
+
     public static void removeClient(ClientHandler handler) {
         activeClients.remove(handler);
     }
@@ -55,4 +58,6 @@ public class SimpleServer {
             }
         }, 30, 30, TimeUnit.SECONDS);
     }
+
+
 }
