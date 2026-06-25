@@ -1,23 +1,28 @@
 package org.temochko.Business.Controllers;
 
-import org.temochko.Business.DTOs.LoginResponseDto;
-import org.temochko.Business.DTOs.RegisterResponseDto;
-import org.temochko.NetworkLayer.NetworkClient;
-import org.temochko.Presentation.LoginFrame;
-import org.temochko.Presentation.MainFrame;
-import org.temochko.Presentation.RegistrationPage;
+import org.temochko.Business.DTOs.Login.LoginResponseDto;
+import org.temochko.Business.DTOs.Register.RegisterResponseDto;
+import org.temochko.Business.Validators.LoginValidator;
+import org.temochko.Business.Validators.RegisterValidator;
+import org.temochko.Business.Validators.ValidationResult;
+import org.temochko.NetworkLayer.ClientSide.NetworkClient;
+import org.temochko.Presentation.Frames.ChatFrame;
+import org.temochko.Presentation.Frames.LoginFrame;
+import org.temochko.Presentation.Frames.RegistrationPage;
 
 import javax.swing.*;
 import java.awt.event.*;
 
 /**
- * LoginController — handles all interaction on LoginFrame.
+ * Controller responsible for the logic of the login.
+ * It handles user input, validates data, and gives data to NetworkClient
+ * to work with the server.
  */
 public class LoginController {
 
     private final LoginFrame view;
     private final RegistrationPage registrationPage;
-    private final NetworkClient networkClient; // Тепер контролер працює з мережею, а не напряму з БД
+    private final NetworkClient networkClient;
 
     public LoginController(LoginFrame view, RegistrationPage registrationPage, NetworkClient networkClient) {
         this.view = view;
@@ -26,23 +31,34 @@ public class LoginController {
         wireEvents();
     }
 
-
+    /**
+     * Reads username and password,
+     * validates them, and sends a request to the NetworkClient to send them
+     * to the server
+     */
     private void onLogin() {
         registrationPage.dispose();
         view.setVisible(true);
         String username = view.usernameField.getText().trim();
         String password = new String(view.passwordField.getPassword());
 
+        ValidationResult result = LoginValidator.validate(username, password);
+
+        if (!result.isValid) {
+            registrationPage.setError("Validation Error " + result.errorMessage);  return;
+        }
+
         view.setError("");
-
-        if (username.isEmpty()) { view.setError("Please enter your username."); return; }
-        if (password.isEmpty()) { view.setError("Please enter your password.");  return; }
-
         view.setLoading(true);
 
+        /**
+         * SwingWorker performs the network request in the background for the UI
+         * not to freeze
+        */
         SwingWorker<LoginResponseDto, Void> worker = new SwingWorker<>() {
             @Override
             protected LoginResponseDto doInBackground() throws Exception {
+                view.setLoading(true);
                 return networkClient.sendLoginRequest(username, password);
             }
 
@@ -53,7 +69,7 @@ public class LoginController {
                     LoginResponseDto response = get();
                     handleAuthResult(response, username);
                 } catch (Exception ex) {
-                    view.setError("Не вдалося з'єднатися з сервером.");
+                    view.setError("Couldnt connect to the server.");
                     ex.printStackTrace();
                 }
             }
@@ -61,13 +77,18 @@ public class LoginController {
         worker.execute();
     }
 
-    private void handleAuthResult(LoginResponseDto response, String username) {
+    /**
+    * Processes the server's response after a login or registration attempt.
+    */
+    private void handleAuthResult(LoginResponseDto response, String username) throws Exception {
         if (response.success) {
             view.dispose();
             registrationPage.dispose();
-            MainFrame main = new MainFrame(username);
-            new MainController(main);
-            main.setVisible(true);
+
+            ChatFrame chatFrame = new ChatFrame(username);
+            new MainController(chatFrame, networkClient);
+            chatFrame.setVisible(true);
+            networkClient.sendSetOnlineRequest(username, true);
         } else {
             view.setError(response.message);
         }
@@ -85,13 +106,11 @@ public class LoginController {
         view.usernameField.addKeyListener(enterLogin);
         view.passwordField.addKeyListener(enterLogin);
 
-        view.forgotPasswordLink.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) { onForgotPassword(); }
-        });
 
         registrationPage.loginButton.addActionListener(e -> onLogin());
         registrationPage.registerButton.addActionListener(e -> onRegister());
     }
+
 
     private void onRegister() {
         view.dispose();
@@ -102,19 +121,10 @@ public class LoginController {
         String confirmPassword = new String(registrationPage.confirmPasswordField.getPassword());
         String email = new String(registrationPage.emailField.getText());
 
-        registrationPage.setError("");
+        ValidationResult result = RegisterValidator.validate(username, email, password, confirmPassword);
 
-        if (username.isEmpty()) {
-            registrationPage.setError("Please enter your username.");
-            return;
-        }
-        if (password.isEmpty()) { registrationPage.setError("Please enter your password.");  return; }
-        if (confirmPassword.isEmpty()) { registrationPage.setError("Please enter your confirmed password.");  return; }
-        if (email.isEmpty()) { registrationPage.setError("Please enter your email.");  return; }
-
-        if (!password.equals(confirmPassword)) {
-            registrationPage.setError("Passwords do not match.");
-            return;
+        if (!result.isValid) {
+            registrationPage.setError("Validation Error " + result.errorMessage);  return;
         }
 
         registrationPage.setLoading(true);
@@ -140,11 +150,5 @@ public class LoginController {
         worker.execute();
 
 
-    }
-
-    private void onForgotPassword() {
-        JOptionPane.showMessageDialog(view,
-                "Password reset flow — wire to your reset screen here.",
-                "Forgot password", JOptionPane.INFORMATION_MESSAGE);
     }
 }

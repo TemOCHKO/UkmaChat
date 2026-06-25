@@ -1,16 +1,11 @@
-package org.temochko.Presentation;
+package org.temochko.Presentation.Frames;
 
 import javax.swing.*;
+import javax.swing.border.*;
 import java.awt.*;
 
-import javax.swing.border.*;
 
-/**
- * RegistrationFrame — the sign-up screen for the chat application.
- * Styled to match LoginFrame perfectly.
- * Exposes fields so a RegistrationController can wire up the logic.
- */
-public class RegistrationPage extends JFrame {
+public class LoginFrame extends JFrame {
 
     // ── palette ───────────────────────────────────────────────────────────────
     static final Color BG_MAIN      = new Color(0xF7F8FA);
@@ -22,109 +17,26 @@ public class RegistrationPage extends JFrame {
     static final Color INPUT_BG     = new Color(0xFFFFFF);
     static final Color ERROR_COLOR  = new Color(0xE05260);
 
-    // ── fonts ─────────────────────────────────────────────────────────────────
     static final Font FONT_TITLE  = new Font("Inter",         Font.BOLD,   26);
     static final Font FONT_LABEL  = new Font("Inter",         Font.PLAIN,  13);
     static final Font FONT_INPUT  = new Font("Monospaced",    Font.PLAIN,  14);
     static final Font FONT_BTN    = new Font("Inter",         Font.BOLD,   14);
     static final Font FONT_LINK   = new Font("Inter",         Font.PLAIN,  13);
 
-    // ── components (public so controller can access) ──────────────────────────
     public JTextField     usernameField;
-    public JTextField     emailField;
     public JPasswordField passwordField;
-    public JPasswordField confirmPasswordField;
-
+    public JButton        loginButton;
     public JButton        registerButton;
-    public JButton        loginButton; // Button to go back to login
+    JLabel         errorLabel;
 
-    private JLabel        errorLabel;
-
-    public RegistrationPage() {
-        setTitle("UkmaChat — Create Account");
+    public LoginFrame() {
+        setTitle("Chat - Sign in");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setResizable(false);
-        setSize(860, 560); // Slightly taller to accommodate extra fields gracefully
+        setSize(450, 540);
         setLocationRelativeTo(null);
 
-        JPanel root = new JPanel(new GridLayout(1, 2));
-        root.add(buildAccentPanel());
-        root.add(buildFormPanel());
-        setContentPane(root);
-    }
-
-    // ── left decorative panel ─────────────────────────────────────────────────
-    private JPanel buildAccentPanel() {
-        JPanel panel = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                // gradient backdrop
-                GradientPaint gp = new GradientPaint(
-                        0, 0,               new Color(0x1E1F2E),
-                        getWidth(), getHeight(), new Color(0x2A2D50));
-                g2.setPaint(gp);
-                g2.fillRect(0, 0, getWidth(), getHeight());
-
-                // decorative circles
-                g2.setColor(new Color(0x4F80FF, false));
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.12f));
-                g2.fillOval(-60, -60, 280, 280);
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.08f));
-                g2.fillOval(getWidth() - 140, getHeight() - 160, 260, 260);
-                g2.dispose();
-            }
-        };
-        panel.setLayout(new GridBagLayout());
-        panel.setPreferredSize(new Dimension(360, 560));
-
-        JPanel inner = new JPanel();
-        inner.setOpaque(false);
-        inner.setLayout(new BoxLayout(inner, BoxLayout.Y_AXIS));
-
-        // logo bubble
-        JPanel logoBubble = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(ACCENT_BLUE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
-                g2.setColor(Color.WHITE);
-                g2.setFont(new Font("Inter", Font.BOLD, 22));
-                FontMetrics fm = g2.getFontMetrics();
-                String ch = "C";
-                g2.drawString(ch,
-                        (getWidth() - fm.stringWidth(ch)) / 2,
-                        (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
-                g2.dispose();
-            }
-        };
-        logoBubble.setOpaque(false);
-        logoBubble.setPreferredSize(new Dimension(52, 52));
-        logoBubble.setMaximumSize(new Dimension(52, 52));
-        logoBubble.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel appName = new JLabel("Chatter");
-        appName.setFont(new Font("Inter", Font.BOLD, 28));
-        appName.setForeground(Color.WHITE);
-        appName.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel tagline = new JLabel("<html>Join the community.<br>Connect in real-time.</html>");
-        tagline.setFont(new Font("Inter", Font.PLAIN, 15));
-        tagline.setForeground(new Color(0xB0B8D4));
-        tagline.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        inner.add(logoBubble);
-        inner.add(Box.createVerticalStrut(18));
-        inner.add(appName);
-        inner.add(Box.createVerticalStrut(14));
-        inner.add(tagline);
-
-        panel.add(inner);
-        return panel;
+        setContentPane(buildFormPanel());
     }
 
     // ── right form panel ──────────────────────────────────────────────────────
@@ -135,14 +47,14 @@ public class RegistrationPage extends JFrame {
         JPanel form = new JPanel();
         form.setOpaque(false);
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-        form.setPreferredSize(new Dimension(320, 480)); // Slightly taller for more fields
+        form.setPreferredSize(new Dimension(320, 420));
 
-        JLabel title = new JLabel("Create Account");
+        JLabel title = new JLabel("Welcome back");
         title.setFont(FONT_TITLE);
         title.setForeground(TEXT_PRIMARY);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel subtitle = new JLabel("Sign up for a new account");
+        JLabel subtitle = new JLabel("Sign in to your account");
         subtitle.setFont(FONT_LABEL);
         subtitle.setForeground(TEXT_MUTED);
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -153,14 +65,22 @@ public class RegistrationPage extends JFrame {
         errorLabel.setForeground(ERROR_COLOR);
         errorLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // Inputs
+        // username
+        JLabel userLabel = fieldLabel("Username");
         usernameField = styledTextField("your_username");
-        emailField = styledTextField("student@ukma.edu.ua");
+
+        // password
+        JLabel passLabel = fieldLabel("Password");
         passwordField  = styledPasswordField();
-        confirmPasswordField = styledPasswordField();
+
+        // remember + forgot
+        JPanel rememberRow = new JPanel(new BorderLayout());
+        rememberRow.setOpaque(false);
+        rememberRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+
 
         // primary button
-        registerButton = new JButton("Sign up") {
+        loginButton = new JButton("Sign in") {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -177,13 +97,13 @@ public class RegistrationPage extends JFrame {
                 g2.dispose();
             }
         };
-        styleButton(registerButton, true);
+        styleButton(loginButton, true);
 
         // divider
         JPanel divider = buildDivider("or");
 
-        // secondary button
-        loginButton = new JButton("Sign in instead") {
+        // register button
+        registerButton = new JButton("Create an account") {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -200,40 +120,30 @@ public class RegistrationPage extends JFrame {
                 g2.dispose();
             }
         };
-        styleButton(loginButton, false);
+        styleButton(registerButton, false);
 
-        // assemble (tightened struts for 4 fields)
+        // assemble
         form.add(title);
         form.add(Box.createVerticalStrut(4));
         form.add(subtitle);
-        form.add(Box.createVerticalStrut(10));
+        form.add(Box.createVerticalStrut(20));
         form.add(errorLabel);
-
-        form.add(fieldLabel("Username"));
         form.add(Box.createVerticalStrut(4));
+        form.add(userLabel);
+        form.add(Box.createVerticalStrut(6));
         form.add(usernameField);
-        form.add(Box.createVerticalStrut(10));
-
-        form.add(fieldLabel("Email"));
-        form.add(Box.createVerticalStrut(4));
-        form.add(emailField);
-        form.add(Box.createVerticalStrut(10));
-
-        form.add(fieldLabel("Password"));
-        form.add(Box.createVerticalStrut(4));
+        form.add(Box.createVerticalStrut(14));
+        form.add(passLabel);
+        form.add(Box.createVerticalStrut(6));
         form.add(passwordField);
         form.add(Box.createVerticalStrut(10));
-
-        form.add(fieldLabel("Confirm Password"));
-        form.add(Box.createVerticalStrut(4));
-        form.add(confirmPasswordField);
-
-        form.add(Box.createVerticalStrut(18));
-        form.add(registerButton);
-        form.add(Box.createVerticalStrut(12));
-        form.add(divider);
-        form.add(Box.createVerticalStrut(12));
+        form.add(rememberRow);
+        form.add(Box.createVerticalStrut(20));
         form.add(loginButton);
+        form.add(Box.createVerticalStrut(16));
+        form.add(divider);
+        form.add(Box.createVerticalStrut(16));
+        form.add(registerButton);
 
         panel.add(form);
         return panel;
@@ -270,8 +180,8 @@ public class RegistrationPage extends JFrame {
         tf.setCaretColor(ACCENT_BLUE);
         tf.setBorder(new CompoundBorder(
                 new RoundedBorder(BORDER_COLOR, 1, 9),
-                new EmptyBorder(7, 12, 7, 12))); // slightly smaller padding
-        tf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+                new EmptyBorder(9, 12, 9, 12)));
+        tf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         tf.setAlignmentX(Component.LEFT_ALIGNMENT);
         return tf;
     }
@@ -284,8 +194,8 @@ public class RegistrationPage extends JFrame {
         pf.setCaretColor(ACCENT_BLUE);
         pf.setBorder(new CompoundBorder(
                 new RoundedBorder(BORDER_COLOR, 1, 9),
-                new EmptyBorder(7, 12, 7, 12))); // slightly smaller padding
-        pf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+                new EmptyBorder(9, 12, 9, 12)));
+        pf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         pf.setAlignmentX(Component.LEFT_ALIGNMENT);
         return pf;
     }
@@ -295,8 +205,8 @@ public class RegistrationPage extends JFrame {
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
         btn.setOpaque(false);
-        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-        btn.setPreferredSize(new Dimension(Integer.MAX_VALUE, 42));
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        btn.setPreferredSize(new Dimension(Integer.MAX_VALUE, 44));
         btn.setAlignmentX(Component.LEFT_ALIGNMENT);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
@@ -325,11 +235,10 @@ public class RegistrationPage extends JFrame {
     }
 
     public void setLoading(boolean loading) {
-        registerButton.setEnabled(!loading);
-        registerButton.setText(loading ? "Creating account…" : "Sign up");
+        loginButton.setEnabled(!loading);
+        loginButton.setText(loading ? "Signing in…" : "Sign in");
     }
 
-    // ── inner: rounded border used by inputs ──────────────────────────────────
     static class RoundedBorder extends AbstractBorder {
         private final Color color;
         private final int   thickness;

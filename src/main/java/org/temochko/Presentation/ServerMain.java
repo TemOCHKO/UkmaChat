@@ -1,10 +1,9 @@
 package org.temochko.Presentation;
 
-
 import org.temochko.DataAccess.DatabaseManager;
 import org.temochko.DataAccess.Repositories.User.UserRepository;
 import org.temochko.Business.AuthService;
-import org.temochko.NetworkLayer.SimpleServer;
+import org.temochko.NetworkLayer.ServerSide.Server;
 
 public class ServerMain {
     public static void main(String[] args) {
@@ -14,7 +13,7 @@ public class ServerMain {
             DatabaseManager dbManager = DatabaseManager.getInstance();
             UserRepository userRepository = new UserRepository(dbManager);
             AuthService authService = new AuthService(userRepository);
-            SimpleServer server = new SimpleServer(authService);
+            Server server = new Server(authService);
 
             int port = 8080;
             server.start(port);

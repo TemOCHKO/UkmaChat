@@ -1,4 +1,4 @@
-package org.temochko.Business.DTOs;
+package org.temochko.Business.DTOs.KeyExchanges;
 
 import java.io.Serializable;
 import java.security.PublicKey;

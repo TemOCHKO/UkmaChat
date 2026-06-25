@@ -1,5 +1,6 @@
 package org.temochko.DataAccess.Repositories;
 
+import org.temochko.Business.DTOs.Message.ChatMessage;
 import org.temochko.DataAccess.DatabaseManager;
 import org.temochko.DataAccess.Models.Message;
 
@@ -7,74 +8,53 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Repository layer — all SQL for messages lives here.
- */
 public class MessageRepository {
-    private final DatabaseManager db;
+    private final DatabaseManager db = DatabaseManager.getInstance();
 
-    public MessageRepository(DatabaseManager db) {
-        this.db = db;
-    }
+    public void saveMessage(ChatMessage msg) throws SQLException {
+        String sql = "INSERT INTO messages (sender_name, receiver_name, content, sent_at) VALUES (?, ?, ?, ?)";
 
-    public Message save(int senderId, int receiverId, String content) throws SQLException {
-        String sql = """
-            INSERT INTO messages (sender_id, receiver_id, content, sent_at)
-            VALUES (?, ?, ?, NOW())
-            RETURNING id, sent_at
-            """;
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, senderId);
-            ps.setInt(2, receiverId);
-            ps.setString(3, content);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    Message m = new Message();
-                    m.setId(rs.getInt("id"));
-                    m.setSenderId(senderId);
-                    m.setReceiverId(receiverId);
-                    m.setContent(content);
-                    m.setSentAt(rs.getTimestamp("sent_at").toLocalDateTime());
-                    return m;
-                }
-            }
+
+            ps.setString(1, msg.from);
+            ps.setString(2, msg.username);
+            ps.setString(3, msg.message);
+            ps.setTimestamp(4, java.sql.Timestamp.valueOf(java.time.LocalDateTime.now()));
+
+            ps.executeUpdate();
         }
-        throw new SQLException("Message insert returned no id");
     }
 
-    /**
-     * Retrieve conversation between two users, ordered oldest-first, last 100.
-     */
-    public List<Message> findConversation(int userA, int userB) throws SQLException {
-        String sql = """
-            SELECT m.id, m.sender_id, u.username AS sender_username,
-                   m.receiver_id, m.content, m.sent_at
-            FROM messages m
-            JOIN users u ON u.id = m.sender_id
-            WHERE (m.sender_id = ? AND m.receiver_id = ?)
-               OR (m.sender_id = ? AND m.receiver_id = ?)
-            ORDER BY m.sent_at ASC
-            LIMIT 100
-            """;
-        List<Message> list = new ArrayList<>();
+    public List<ChatMessage> getChatHistory(String user1, String user2) throws SQLException {
+        List<ChatMessage> history = new ArrayList<>();
+
+        String sql = "SELECT * FROM messages WHERE " +
+                "(sender_name = ? AND receiver_name = ?) OR " +
+                "(sender_name = ? AND receiver_name = ?) " +
+                "ORDER BY sent_at ASC";
+
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, userA); ps.setInt(2, userB);
-            ps.setInt(3, userB); ps.setInt(4, userA);
+
+            ps.setString(1, user1);
+            ps.setString(2, user2);
+            ps.setString(3, user2);
+            ps.setString(4, user1);
+
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    Message m = new Message();
-                    m.setId(rs.getInt("id"));
-                    m.setSenderId(rs.getInt("sender_id"));
-                    m.setSenderUsername(rs.getString("sender_username"));
-                    m.setReceiverId(rs.getInt("receiver_id"));
-                    m.setContent(rs.getString("content"));
-                    m.setSentAt(rs.getTimestamp("sent_at").toLocalDateTime());
-                    list.add(m);
+                    String msgFrom = rs.getString("sender_name");
+                    String msgUsername = rs.getString("receiver_name");
+                    String msgMessage = rs.getString("content");
+                    String msgTimestamp = String.valueOf(rs.getTimestamp("sent_at").toLocalDateTime());
+
+                    ChatMessage msg = new ChatMessage(msgUsername, msgFrom, msgMessage, msgTimestamp);
+
+                    history.add(msg);
                 }
             }
         }
-        return list;
+        return history;
     }
 }
