@@ -29,18 +29,6 @@ public class UserRepository implements IUserRepository {
         return Optional.empty();
     }
 
-    public Optional<User> findById(int id) throws SQLException {
-        String sql = "SELECT id, username, email, online, last_seen FROM users WHERE id = ?";
-        try (Connection c = db.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
-                //if (rs.next()) return Optional.of(map(rs));
-            }
-        }
-        return Optional.empty();
-    }
-
     public Optional<String> findPasswordHash(String username) throws SQLException {
         String sql = "SELECT password FROM users WHERE username = ?";
         try (Connection c = db.getConnection();
@@ -69,17 +57,6 @@ public class UserRepository implements IUserRepository {
         throw new SQLException("User insert returned no id");
     }
 
-    public void setOnline(int userId, boolean online) throws SQLException {
-        String sql = "UPDATE users SET online = ?, last_seen = ? WHERE id = ?";
-        try (Connection c = db.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setBoolean(1, online);
-            ps.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
-            ps.setInt(3, userId);
-            ps.executeUpdate();
-        }
-    }
-
     public void setOnline(String username, boolean online) throws SQLException {
         String sql = "UPDATE users SET online = ?, last_seen = ? WHERE username = ?";
         try (Connection c = db.getConnection();
@@ -91,18 +68,6 @@ public class UserRepository implements IUserRepository {
         }
     }
 
-    public List<User> findAllExcept(int excludeId) throws SQLException {
-        String sql = "SELECT id, username, email, online, last_seen FROM users WHERE id <> ?";
-        List<User> list = new ArrayList<>();
-        try (Connection c = db.getConnection();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, excludeId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) list.add(map(rs));
-            }
-        }
-        return list;
-    }
 
    private User map(ResultSet rs) throws SQLException {
         User u = new User();

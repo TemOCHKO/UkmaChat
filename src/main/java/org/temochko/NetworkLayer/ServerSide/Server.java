@@ -17,7 +17,7 @@ public class Server {
     }
 
     public void start(int port) {
-        //startHeartbeatMonitor();
+        startHeartbeatMonitor();
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server started on port " + port);
 
@@ -42,7 +42,7 @@ public class Server {
         activeClients.remove(handler);
     }
 
-    /*private void startHeartbeatMonitor() {
+    private void startHeartbeatMonitor() {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
         // every 30 secs
@@ -57,7 +57,7 @@ public class Server {
                 }
             }
         }, 30, 30, TimeUnit.SECONDS);
-    }*/
+    }
 
 
 }

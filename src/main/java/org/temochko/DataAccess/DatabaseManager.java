@@ -52,7 +52,9 @@ public class DatabaseManager {
         return DriverManager.getConnection(url, user, password);
     }
 
-    /** Run once at startup to create tables if they don't exist. */
+     /**
+     * Run once at startup to create tables if they don't exist.
+     */
     public void initSchema() {
         String sql = """
             CREATE TABLE IF NOT EXISTS users (

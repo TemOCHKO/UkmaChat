@@ -15,6 +15,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * The main controller that manages the main chat functionality
+ * It is responsible for displaying messages, searching for users,
+ * and giving responsibility to NetworkClient with the server.
+ */
 public class MainController {
 
     private final ChatFrame view;
@@ -22,6 +27,7 @@ public class MainController {
     private ChatFrame.ContactItem currentChatUser;
 
     private final Map<String, List<ChatMessage>> localMessageCache = new HashMap<>();
+    private final java.util.Set<String> loadedHistories = new java.util.HashSet<>();
 
     public MainController(ChatFrame view, NetworkClient networkClient) {
         this.view = view;
@@ -67,6 +73,10 @@ public class MainController {
         });
     }
 
+    /**
+     * Activated when the user clicks on a contact in the list.
+     * Enables the input field and attempts to load chat history from local cache or server.
+     */
     private void onContactSelected() {
         ChatFrame.ContactItem selected = view.contactList.getSelectedValue();
         if (selected == null) return;
@@ -79,7 +89,7 @@ public class MainController {
         view.chatHeaderDetails.setText(currentChatUser.isOnline ? "online" : "offline");
         view.clearMessages();
 
-        if (!localMessageCache.containsKey(currentChatUser.username)) {
+        if (!loadedHistories.contains(currentChatUser.username)) {
             SwingWorker<Void, Void> worker = new SwingWorker<>() {
                 @Override
                 protected Void doInBackground() throws Exception {
@@ -97,6 +107,10 @@ public class MainController {
         }
     }
 
+    /**
+     * Takes the text from message input field, draws a sent message on client and
+     * sends a message dto to the NetwrokClient
+     */
     private void onSendMessage() {
         String text = view.messageInputField.getText().trim();
         if (text.isEmpty() || currentChatUser == null) return;
@@ -119,6 +133,9 @@ public class MainController {
         worker.execute();
     }
 
+    /**
+     * Responsible for searching users in the searchField
+     */
     private void onSearching() {
         String text = view.searchField.getText().trim();
         if (text.isEmpty()) return;
@@ -137,7 +154,10 @@ public class MainController {
         worker.execute();
     }
 
-
+    /**
+     * Configures network to react to server responses.
+     * Listens for search results, incoming messages, and chat history.
+     */
     private void initNetwork() {
         networkClient.setOnSearchResponseReceived(dto -> {
             SwingUtilities.invokeLater(() -> {
@@ -182,6 +202,7 @@ public class MainController {
 
         networkClient.setOnHistoryReceived(dto -> {
             SwingUtilities.invokeLater(() -> {
+                loadedHistories.add(dto.targetUsername);
                 localMessageCache.put(dto.targetUsername, dto.history);
 
                 if (currentChatUser != null && currentChatUser.username.equals(dto.targetUsername)) {

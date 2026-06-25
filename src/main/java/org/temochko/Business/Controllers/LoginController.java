@@ -13,6 +13,11 @@ import org.temochko.Presentation.Frames.RegistrationPage;
 import javax.swing.*;
 import java.awt.event.*;
 
+/**
+ * Controller responsible for the logic of the login.
+ * It handles user input, validates data, and gives data to NetworkClient
+ * to work with the server.
+ */
 public class LoginController {
 
     private final LoginFrame view;
@@ -26,6 +31,11 @@ public class LoginController {
         wireEvents();
     }
 
+    /**
+     * Reads username and password,
+     * validates them, and sends a request to the NetworkClient to send them
+     * to the server
+     */
     private void onLogin() {
         registrationPage.dispose();
         view.setVisible(true);
@@ -41,9 +51,14 @@ public class LoginController {
         view.setError("");
         view.setLoading(true);
 
+        /**
+         * SwingWorker performs the network request in the background for the UI
+         * not to freeze
+        */
         SwingWorker<LoginResponseDto, Void> worker = new SwingWorker<>() {
             @Override
             protected LoginResponseDto doInBackground() throws Exception {
+                view.setLoading(true);
                 return networkClient.sendLoginRequest(username, password);
             }
 
@@ -62,6 +77,9 @@ public class LoginController {
         worker.execute();
     }
 
+    /**
+    * Processes the server's response after a login or registration attempt.
+    */
     private void handleAuthResult(LoginResponseDto response, String username) throws Exception {
         if (response.success) {
             view.dispose();
@@ -92,6 +110,7 @@ public class LoginController {
         registrationPage.loginButton.addActionListener(e -> onLogin());
         registrationPage.registerButton.addActionListener(e -> onRegister());
     }
+
 
     private void onRegister() {
         view.dispose();

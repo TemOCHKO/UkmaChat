@@ -25,12 +25,15 @@ public class AuthService {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Finds the hashed password for the username and compares it to the raw
+     */
     public LoginResponseDto authenticate(String username, String rawPassword) {
         try {
             Optional<String> storedHashOpt = userRepository.findPasswordHash(username);
             if (storedHashOpt.isPresent()) {
                 if (userRepository.isUserOnline(username)) {
-                    return new LoginResponseDto(false, "User already is logged in", UUID.randomUUID().toString());
+                    return new LoginResponseDto(false, "User already is logged in", null);
                 }
 
                 String storedHash = storedHashOpt.get();
@@ -51,6 +54,10 @@ public class AuthService {
         }
     }
 
+    /**
+     * Checks if the user with the same username exists
+     * If not, stores user in db and returns successful Register Response dto
+     */
     public RegisterResponseDto register(String username, String rawPassword, String email) {
         try {
             if (userRepository.findByUsername(username).isPresent()) {
@@ -67,10 +74,6 @@ public class AuthService {
             return new RegisterResponseDto(false, "Server error during registration", null);
         }
     }
-    public RegisterResponseDto register(RegisterRequestDto request) throws Exception {
-        return register(request.username, request.password, request.email);
-    }
-
 
     public SearchUserResponseDto searchUsers(String query) {
         try {

@@ -29,7 +29,11 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-
+/**
+ * A dedicated server thread for handling a single connected client.
+ * It processes incoming requests, manages the user's session,
+ * and sends messages to other connected clients.
+ */
 public class ClientHandler extends Thread{
 
     private final Socket socket;
@@ -61,6 +65,10 @@ public class ClientHandler extends Thread{
         }
     }
 
+    /**
+     * Firstly establishes connection with the client
+     * Then it listens for DTOs and handles them in the correct way
+     */
     private void handleClientSocket() throws IOException {
         try {
             out = new ObjectOutputStream(socket.getOutputStream());
@@ -90,6 +98,7 @@ public class ClientHandler extends Thread{
                         continue;
                     }
 
+                    // encrypted message
                     else if (request instanceof byte[]) {
                         byte[] packet = (byte[]) request;
 
@@ -151,7 +160,8 @@ public class ClientHandler extends Thread{
                         if (recipient != null) {
                             recipient.sendMessageToClient(chatMsg);
                         }
-                    } else if (request instanceof ChatHistoryRequestDto) {
+                    }
+                     else if (request instanceof ChatHistoryRequestDto) {
                         MessageRepository messageRepository = new MessageRepository();
                         ChatHistoryRequestDto historyReq = (ChatHistoryRequestDto) request;
 

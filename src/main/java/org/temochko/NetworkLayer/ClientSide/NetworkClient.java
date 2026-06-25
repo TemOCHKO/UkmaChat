@@ -30,7 +30,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-// Client side of network, works with server
+/**
+ * The client-side network handler, which is
+ * responsible for establishing a connection with the server,
+ * handling the encryption handshake,
+ * sending requests in the form of DTOs,
+ * and continuously listening for incoming data.
+ */
 public class NetworkClient {
     private final String serverAddress;
     private final int serverPort;
@@ -58,7 +64,11 @@ public class NetworkClient {
         this.onSearchResponseReceived = callback;
     }
 
-    // get a connection with the server and exhcange keys
+    /**
+     * Establishes a socket connection to the server.
+     * Receives the servers RSA public key, generates an AES key locally,
+     * encrypts it with the RSA, and sends it back to the server.
+     */
     public void connect() throws Exception {
         socket = new Socket(serverAddress, serverPort);
 
@@ -82,7 +92,7 @@ public class NetworkClient {
         out.writeObject(new EncryptedAesKeyExchange(encryptedAesKey));
         out.flush();
 
-        //startHeartbeat();
+        startHeartbeat();
     }
 
     public LoginResponseDto sendLoginRequest(String username, String rawPassword) throws Exception {
@@ -123,7 +133,10 @@ public class NetworkClient {
         out.flush();
     }
 
-    /*private void startHeartbeat() {
+    /**
+     * Send PingDto every 15 secs to the server
+     */
+    private void startHeartbeat() {
         heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
         // every 15 secs
         heartbeatScheduler.scheduleAtFixedRate(() -> {
@@ -138,7 +151,7 @@ public class NetworkClient {
                 System.exit(0);
             }
         }, 15, 15, TimeUnit.SECONDS);
-    }*/
+    }
 
     public void disconnect() {
         try {
@@ -160,7 +173,10 @@ public class NetworkClient {
         this.onMessageReceived = callback;
     }
 
-    // after successfully logged in
+    /**
+     * Starts a background thread that listens for incoming objects from the server.
+     * It sends DTOs and packets to their UI callbacks.
+     */
     public void startListening() {
         listenerThread = new Thread(() -> {
             try {
